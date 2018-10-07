@@ -1,2 +1,2 @@
-# anicha
-booru-backed anime captcha library and server
+# captchouli
+booru-backed anime image captcha library and server
