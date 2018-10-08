@@ -2,11 +2,15 @@ package captchouli
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/bakape/captchouli/common"
 )
+
+func init() {
+	common.IsTest = true
+}
 
 func TestThumbnailing(t *testing.T) {
 	s, err := NewService(Options{
@@ -36,30 +40,8 @@ func TestThumbnailing(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			writeSample(t, fmt.Sprintf("sample_%s_thumb.jpg", c.ext), thumb)
+			common.WriteSample(t, fmt.Sprintf("sample_%s_thumb.jpg", c.ext),
+				thumb)
 		})
-	}
-}
-
-func writeSample(t *testing.T, name string, buf []byte) {
-	t.Helper()
-	path := filepath.Join("testdata", name)
-
-	// Remove previous file, if any
-	_, err := os.Stat(path)
-	switch {
-	case os.IsExist(err):
-		if err := os.Remove(path); err != nil {
-			t.Fatal(err)
-		}
-	case os.IsNotExist(err):
-	case err == nil:
-	default:
-		t.Fatal(err)
-	}
-
-	err = ioutil.WriteFile(path, buf, 0600)
-	if err != nil {
-		t.Fatal(err)
 	}
 }
