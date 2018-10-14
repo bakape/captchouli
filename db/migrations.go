@@ -36,6 +36,13 @@ var migrations = []func(*sql.Tx) error{
 				on image_tags (tag, source, rating)`,
 		)
 	},
+	func(tx *sql.Tx) (err error) {
+		return execAll(tx,
+			createIndex("image_tags", "tag", false),
+			createIndex("image_tags", "source", false),
+			createIndex("image_tags", "rating", false),
+		)
+	},
 }
 
 // Run migrations from version `from`to version `to`

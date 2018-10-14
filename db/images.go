@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 
+	"github.com/Masterminds/squirrel"
+
 	"github.com/bakape/captchouli/common"
 )
 
@@ -64,4 +66,31 @@ func InsertImage(img Image) (err error) {
 		}
 		return
 	})
+}
+
+// Return count of images matching selectors
+func ImageCount(tag string, src common.DataSource, ratings []common.Rating,
+) (n int, err error) {
+	dbMu.RLock()
+	defer dbMu.RUnlock()
+
+	// Dedup and convert rating array
+	dedupMap := make(map[int]bool, len(ratings))
+	for _, r := range ratings {
+		dedupMap[int(r)] = true
+	}
+	dedup := make([]int, 0, len(dedupMap))
+	for r := range dedupMap {
+		dedup = append(dedup, r)
+	}
+
+	err = sq.Select("count(*)").
+		From("image_tags").
+		Where(squirrel.Eq{
+			"tag":    tag,
+			"source": int(src),
+			"rating": dedup,
+		}).
+		Scan(&n)
+	return
 }

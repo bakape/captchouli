@@ -2,6 +2,9 @@ package captchouli
 
 import (
 	"errors"
+	"log"
+
+	"github.com/bakape/captchouli/db"
 
 	"github.com/bakape/captchouli/common"
 )
@@ -19,11 +22,17 @@ const (
 	Explicit     = common.Explicit
 )
 
+const (
+	// minimum size of image pool for a tag
+	poolMinSize = 6
+)
+
+// Options passed on Service creation
 type Options struct {
 	// Source of image database to use for captcha image generation
 	Source DataSource
 
-	// Explicitness ratings to include. Defaults to Safe.
+	// Explicitness ratings to include. Defaults to {Safe}.
 	Ratings []Rating
 
 	// Tags to source for captcha solutions. One tag is randomly chosen for each
@@ -44,7 +53,6 @@ type Service struct {
 }
 
 // Create new captcha-generation and verification service
-// Caller must call .Close() to deallocate the service after use.
 func NewService(opts Options) (s *Service, err error) {
 	if len(opts.Tags) == 0 {
 		err = Error{errors.New("no tags provided")}
@@ -61,5 +69,45 @@ func NewService(opts Options) (s *Service, err error) {
 	}
 
 	err = initClassifier(opts.Source)
+	if err != nil {
+		return
+	}
+	err = s.initPool()
 	return
+}
+
+// Initialize pool with enough images, if lacking
+func (s *Service) initPool() (err error) {
+	var count int
+	for _, t := range s.tags {
+		first := true
+	check:
+		count, err = db.ImageCount(t, s.source, s.ratings)
+		if err != nil {
+			return
+		}
+		if count >= poolMinSize {
+			continue
+		} else if first {
+			first = false
+			log.Printf("initializing image pool for tag `%s`\n", t)
+		}
+
+		err = fetch(common.FetchRequest{
+			Tag:    t,
+			Rating: s.randomRating(),
+		})
+		if err != nil {
+			return
+		}
+		goto check
+	}
+	return
+}
+
+func (s *Service) randomRating() common.Rating {
+	if len(s.ratings) == 1 {
+		return s.ratings[0]
+	}
+	return s.ratings[common.RandomInt(len(s.ratings))]
 }

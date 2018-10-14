@@ -65,7 +65,11 @@ func fetch(req common.FetchRequest) (err error) {
 	defer f.Close()
 
 	thumb, err := thumbnail(f.Name(), req.Source)
-	if err != nil {
+	switch err {
+	case nil:
+	case ErrNoFace:
+		return nil
+	default:
 		return
 	}
 	err = writeThumbnail(thumb, img.MD5)
