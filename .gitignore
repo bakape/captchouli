@@ -12,6 +12,7 @@
 *.out
 
 .vscode
-
+node_modules
 testdata/*thumb.jpg
 */testdata/fetched
+

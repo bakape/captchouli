@@ -1,0 +1,10 @@
+{
+  "name": "captchouli",
+  "version": "1.0.0",
+  "description": "booru-backed anime image captcha library and server",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bakape/captchouli.git"
+  },
+  "author": "bakape <scorpid33@gmail.com> (https://github.com/bakape)"
+}

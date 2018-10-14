@@ -1,0 +1,10 @@
+services: docker
+script:
+  - docker build -t captchouli_test .
+  - docker run captchouli_test go test ./...
+notifications:
+  email:
+    recipients:
+      - scorpid33@gmail.com
+    on_success: never
+    on_failure: always
