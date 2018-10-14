@@ -29,7 +29,7 @@ func DecodeMD5(s string) (buf [16]byte, err error) {
 		return
 	}
 	if n != 16 {
-		err = Error{fmt.Errorf("invalid MD5 hash: `%s`")}
+		err = Error{fmt.Errorf("invalid MD5 hash: `%s`", err)}
 	}
 	return
 }

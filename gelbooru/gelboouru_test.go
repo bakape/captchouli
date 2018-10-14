@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/db"
 )
 
 func init() {
-	common.IsTest = true
+	db.OpenForTests()
 }
 
 func TestFetch(t *testing.T) {
@@ -24,7 +25,10 @@ func TestFetch(t *testing.T) {
 	defer os.Remove(f.Name())
 	defer f.Close()
 
-	f.Seek(0, 0)
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
 	buf, err := ioutil.ReadAll(f)
 	if err != nil {
 		t.Fatal(err)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/db"
 	"github.com/bakape/captchouli/gelbooru"
 )
 
@@ -32,7 +33,11 @@ func init() {
 				i := 0
 				for req := range requests {
 					if i == target {
-						fetch(req)
+						err := fetch(req)
+						if err != nil {
+							log.Printf("fetch error: from %s on tag `%s`\n",
+								req.Source, req.Tag)
+						}
 						delete(requests, req)
 						break
 					}
@@ -43,16 +48,29 @@ func init() {
 	}()
 }
 
-func fetch(req common.FetchRequest) {
-	var fn func(common.FetchRequest) (*os.File, [16]byte, error)
+func fetch(req common.FetchRequest) (err error) {
+	var fn func(common.FetchRequest) (*os.File, db.Image, error)
 	switch req.Source {
 	case common.Gelbooru:
 		fn = gelbooru.Fetch
 	}
-	f, _, err := fn(req)
+	f, img, err := fn(req)
+	if f == nil {
+		return
+	}
 	if err != nil {
-		log.Printf("fetch error: from %s on tag %s", req.Source, req.Tag)
+		return
 	}
 	defer os.Remove(f.Name())
 	defer f.Close()
+
+	thumb, err := thumbnail(f.Name(), req.Source)
+	if err != nil {
+		return
+	}
+	err = writeThumbnail(thumb, img.MD5)
+	if err != nil {
+		return
+	}
+	return db.InsertImage(img)
 }

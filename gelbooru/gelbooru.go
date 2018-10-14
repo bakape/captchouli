@@ -9,9 +9,11 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/db"
 )
 
 var (
@@ -25,18 +27,20 @@ type cacheEntry struct {
 }
 
 type image struct {
-	hash [16]byte
-	url  string
+	db.Image
+	url string
 }
 
 type decoder struct {
 	Sample          bool
 	Directory, Hash string
 	FileURL         string `json:"file_url"`
+	Tags            string
 }
 
 func (d *decoder) toImage() (img image, err error) {
-	img.hash, err = common.DecodeMD5(d.Hash)
+	img.Tags = strings.Split(d.Tags, " ")
+	img.MD5, err = common.DecodeMD5(d.Hash)
 	if err != nil {
 		return
 	}
@@ -53,13 +57,13 @@ func (d *decoder) toImage() (img image, err error) {
 }
 
 // Fetch random matching file from Gelbooru.
-// f can be nil even, if no file is matched, even when err = nil.
+// f can be nil, if no file is matched, even when err = nil.
 // Caller must close and remove temporary file after use.
-func Fetch(req common.FetchRequest) (f *os.File, hash [16]byte, err error) {
+func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	tags := fmt.Sprintf("solo rating:%s %s", req.Rating, req.Tag)
+	tags := fmt.Sprintf("solo -photo rating:%s %s", req.Rating, req.Tag)
 
 	pages, err := pageCount(tags)
 	if err != nil || pages == 0 {
@@ -71,7 +75,12 @@ func Fetch(req common.FetchRequest) (f *os.File, hash [16]byte, err error) {
 	}
 
 	img := images[common.RandomInt(len(images))]
-	hash = img.hash
+	exists, err := db.IsInDatabase(img.MD5)
+	if err != nil || exists {
+		return
+	}
+	image = img.Image
+
 	r, err := http.Get(img.url)
 	if err != nil {
 		return

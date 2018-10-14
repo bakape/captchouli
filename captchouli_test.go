@@ -6,20 +6,21 @@ import (
 	"testing"
 
 	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/db"
 )
 
 func init() {
-	common.IsTest = true
-}
+	db.OpenForTests()
 
-func TestThumbnailing(t *testing.T) {
-	s, err := NewService(Options{
+	_, err := NewService(Options{
 		Tags: []string{"patchouli_knowledge", "cirno", "hakurei_reimu"},
 	})
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
+}
 
+func TestThumbnailing(t *testing.T) {
 	cases := [...]struct {
 		ext string
 	}{
@@ -36,7 +37,7 @@ func TestThumbnailing(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			thumb, err := s.Thumbnail(p)
+			thumb, err := thumbnail(p, common.Gelbooru)
 			if err != nil {
 				t.Fatal(err)
 			}
