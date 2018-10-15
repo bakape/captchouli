@@ -13,13 +13,13 @@ static const int thumb_dim = 150;
 static const char* _thumbnail(
     cv::CascadeClassifier* c, const char* path, Buffer* thumb)
 {
-    cv::Mat colour = cv::imread(path, cv::IMREAD_COLOR);
-    cv::Mat grayscale, equalized;
-    cv::cvtColor(colour, grayscale, cv::COLOR_BGR2GRAY);
-    cv::equalizeHist(grayscale, equalized);
+    const cv::Mat colour = cv::imread(path, cv::IMREAD_COLOR);
+    cv::Mat tmp1, tmp2;
+    cv::cvtColor(colour, tmp1, cv::COLOR_BGR2GRAY);
+    cv::equalizeHist(tmp1, tmp2);
 
     std::vector<cv::Rect> faces;
-    c->detectMultiScale(equalized, faces, 1.1, 5, 0, cv::Size(50, 50));
+    c->detectMultiScale(tmp2, faces, 1.1, 5, 0, cv::Size(50, 50));
     if (!faces.size()) {
         return "no faces detected";
     }
@@ -63,16 +63,16 @@ static const char* _thumbnail(
         face.height += diff;
     }
 
-    cv::Mat resized;
-    cv::resize(cv::Mat(colour, face), resized, cv::Size(thumb_dim, thumb_dim),
-        0, 0, CV_INTER_LINEAR);
+    cv::resize(cv::Mat(colour, face), tmp1, cv::Size(thumb_dim, thumb_dim), 0,
+        0, CV_INTER_LINEAR);
     std::vector<unsigned char> out;
     static const std::vector<int> params = { CV_IMWRITE_JPEG_QUALITY, 90 };
-    if (!cv::imencode(".jpg", resized, out, params)) {
+    if (!cv::imencode(".jpg", tmp1, out, params)) {
         throw std::domain_error("could not encode result");
     }
-    thumb->data = memcpy(malloc(out.size()), out.data(), out.size());
-    thumb->size = out.size();
+    const auto s = out.size();
+    thumb->data = memcpy(malloc(s), out.data(), s);
+    thumb->size = s;
     return 0;
 }
 
