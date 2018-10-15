@@ -9,14 +9,14 @@ import (
 	"github.com/bakape/captchouli/db"
 )
 
-func init() {
+func TestMain(t *testing.M) {
 	db.OpenForTests()
+	os.Exit(t.Run())
 }
 
 func TestFetch(t *testing.T) {
 	f, _, err := Fetch(common.FetchRequest{
 		Tag:    "sakura_kyouko",
-		Rating: common.Safe,
 		Source: common.Gelbooru,
 	})
 	if err != nil {

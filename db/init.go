@@ -60,7 +60,15 @@ func Open() (err error) {
 			return
 		}
 	}
-	return runMigrations(currentVersion, version)
+	err = runMigrations(currentVersion, version)
+	if err != nil {
+		return
+	}
+
+	if !common.IsTest {
+		go runUpkeepTasks()
+	}
+	return
 }
 
 // Close database connection

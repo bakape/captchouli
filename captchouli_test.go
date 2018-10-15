@@ -2,6 +2,7 @@ package captchouli
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -9,15 +10,19 @@ import (
 	"github.com/bakape/captchouli/db"
 )
 
-func init() {
+func TestMain(t *testing.M) {
 	db.OpenForTests()
+	os.Exit(t.Run())
+}
 
-	_, err := NewService(Options{
+func newService(t *testing.T) *Service {
+	s, err := NewService(Options{
 		Tags: []string{"patchouli_knowledge", "cirno", "hakurei_reimu"},
 	})
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
+	return s
 }
 
 func TestThumbnailing(t *testing.T) {

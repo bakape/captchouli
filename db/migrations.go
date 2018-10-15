@@ -17,30 +17,34 @@ var migrations = []func(*sql.Tx) error{
 				id text primary key,
 				val text not null
 			)`,
-			`insert into main (id, val)
-				values('version', '1')`,
+			`insert into main (id, val) values('version', '1')`,
 			`create table images (
 				id integer primary key,
 				hash blob not null
 			)`,
 			createIndex("images", "hash", true),
 			`create table image_tags (
-				image_id int not null,
+				image_id integer not null,
 				tag text not null,
 				source int not null,
-				rating int not null,
 				primary key (image_id, tag, source)
 			)`,
-			createIndex("image_tags", "image_id", false),
-			`create index image_tags_search_idx
-				on image_tags (tag, source, rating)`,
+			createIndex("image_tags", "tag", false),
+			createIndex("image_tags", "source", false),
 		)
 	},
 	func(tx *sql.Tx) (err error) {
 		return execAll(tx,
-			createIndex("image_tags", "tag", false),
-			createIndex("image_tags", "source", false),
-			createIndex("image_tags", "rating", false),
+			`create table captchas (
+				id blob primary key,
+				solution blob not null,
+				created datetime not null default current_timestamp
+			)`,
+		)
+	},
+	func(tx *sql.Tx) (err error) {
+		return execAll(tx,
+			createIndex("captchas", "created", false),
 		)
 	},
 }
@@ -57,7 +61,7 @@ func runMigrations(from, to int) (err error) {
 	}
 
 	for i := from; i < to; i++ {
-		log.Printf("upgrading database to version %d\n", i+1)
+		log.Printf("captchouli: upgrading database to version %d\n", i+1)
 		tx, err = db.Begin()
 		if err != nil {
 			return

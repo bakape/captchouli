@@ -1,13 +1,11 @@
 package db
 
 import (
-	"github.com/bakape/captchouli/common"
+	"os"
+	"testing"
 )
 
-func init() {
-	common.IsTest = true
-	err := Open()
-	if err != nil {
-		panic(err)
-	}
+func TestMain(t *testing.M) {
+	OpenForTests()
+	os.Exit(t.Run())
 }

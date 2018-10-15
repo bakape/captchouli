@@ -38,8 +38,24 @@ type decoder struct {
 	Tags            string
 }
 
-func (d *decoder) toImage() (img image, err error) {
-	img.Tags = strings.Split(d.Tags, " ")
+// Ensure original tag is present and reuse map for deduplication
+func (d *decoder) toImage(tag string, tmp map[string]struct{},
+) (img image, err error) {
+	// Dedup tags just in case. Boorus can't be trusted too much.
+	split := strings.Split(d.Tags, " ")
+	for k := range tmp {
+		delete(tmp, k)
+	}
+	for _, t := range split {
+		tmp[t] = struct{}{}
+	}
+	tmp[tag] = struct{}{} // Ensure map contains initial tag
+
+	img.Tags = make([]string, 0, len(tmp))
+	for k := range tmp {
+		img.Tags = append(img.Tags, k)
+	}
+
 	img.MD5, err = common.DecodeMD5(d.Hash)
 	if err != nil {
 		return
@@ -63,13 +79,13 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	tags := fmt.Sprintf("solo -photo rating:%s %s", req.Rating, req.Tag)
+	tags := "solo -photo -monochrome" + req.Tag
 
-	pages, err := pageCount(tags)
+	pages, err := pageCount(req.Tag, tags)
 	if err != nil || pages == 0 {
 		return
 	}
-	images, err := fetchPage(tags, common.RandomInt(pages))
+	images, err := fetchPage(req.Tag, tags, common.RandomInt(pages))
 	if err != nil || len(images) == 0 {
 		return
 	}
@@ -100,7 +116,7 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	return
 }
 
-func pageCount(tags string) (count int, err error) {
+func pageCount(requested, tags string) (count int, err error) {
 	entry, ok := cache[tags]
 	if ok {
 		count = entry.pageCount
@@ -115,7 +131,7 @@ func pageCount(tags string) (count int, err error) {
 		images []image
 	)
 	for exists { // First find first empty page in increments of 5
-		images, err = fetchPage(tags, page)
+		images, err = fetchPage(requested, tags, page)
 		if err != nil {
 			return
 		}
@@ -125,10 +141,15 @@ func pageCount(tags string) (count int, err error) {
 			return
 		}
 		page += 5
+
+		// Need a limit or we will hit the gelbooru page limit
+		if page >= 100 {
+			break
+		}
 	}
 	for !exists { // Then find last non-empty page
 		page--
-		images, err = fetchPage(tags, page)
+		images, err = fetchPage(requested, tags, page)
 		if err != nil {
 			return
 		}
@@ -146,7 +167,7 @@ func storePageCount(tags string, count int) {
 	cache[tags] = entry
 }
 
-func fetchPage(tags string, page int) (images []image, err error) {
+func fetchPage(requested, tags string, page int) (images []image, err error) {
 	images, ok := cache[tags].pages[page]
 	if ok {
 		return
@@ -178,8 +199,9 @@ func fetchPage(tags string, page int) (images []image, err error) {
 		return
 	}
 	images = make([]image, len(dec))
+	tmp := make(map[string]struct{}, 128)
 	for i := range dec {
-		images[i], err = dec[i].toImage()
+		images[i], err = dec[i].toImage(requested, tmp)
 		if err != nil {
 			return
 		}

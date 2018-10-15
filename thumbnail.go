@@ -45,6 +45,7 @@ func initClassifier(src common.DataSource) (err error) {
 	if err != nil {
 		return
 	}
+	defer r.Close()
 
 	tmp, err := ioutil.TempFile("", "*.xml")
 	if err != nil {

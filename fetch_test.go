@@ -7,6 +7,7 @@ import (
 )
 
 func TestFetch(t *testing.T) {
+	newService(t)
 	err := fetch(common.FetchRequest{
 		Tag: "patchouli_knowledge",
 	})

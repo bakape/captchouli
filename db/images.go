@@ -4,13 +4,11 @@ import (
 	"database/sql"
 
 	"github.com/Masterminds/squirrel"
-
 	"github.com/bakape/captchouli/common"
 )
 
 type Image struct {
 	Source common.DataSource
-	Rating common.Rating
 	MD5    [16]byte
 	Tags   []string
 }
@@ -41,8 +39,7 @@ func InsertImage(img Image) (err error) {
 		r, err := withTransaction(tx, sq.
 			Insert("images").
 			Columns("hash").
-			Values(img.MD5[:]).
-			Suffix("on conflict do nothing")).
+			Values(img.MD5[:])).
 			Exec()
 		if err != nil {
 			return
@@ -53,13 +50,13 @@ func InsertImage(img Image) (err error) {
 		}
 
 		q, err := tx.Prepare(
-			`insert into image_tags (image_id, tag, source, rating)
-			values(?, ?, ?, ?)`)
+			`insert into image_tags (image_id, tag, source)
+			values(?, ?, ?)`)
 		if err != nil {
 			return
 		}
 		for _, t := range img.Tags {
-			_, err = q.Exec(id, t, int(img.Source), int(img.Rating))
+			_, err = q.Exec(id, t, img.Source)
 			if err != nil {
 				return
 			}
@@ -69,27 +66,15 @@ func InsertImage(img Image) (err error) {
 }
 
 // Return count of images matching selectors
-func ImageCount(tag string, src common.DataSource, ratings []common.Rating,
-) (n int, err error) {
+func ImageCount(tag string, src common.DataSource) (n int, err error) {
 	dbMu.RLock()
 	defer dbMu.RUnlock()
-
-	// Dedup and convert rating array
-	dedupMap := make(map[int]bool, len(ratings))
-	for _, r := range ratings {
-		dedupMap[int(r)] = true
-	}
-	dedup := make([]int, 0, len(dedupMap))
-	for r := range dedupMap {
-		dedup = append(dedup, r)
-	}
 
 	err = sq.Select("count(*)").
 		From("image_tags").
 		Where(squirrel.Eq{
 			"tag":    tag,
-			"source": int(src),
-			"rating": dedup,
+			"source": src,
 		}).
 		Scan(&n)
 	return

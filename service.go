@@ -1,26 +1,31 @@
 package captchouli
 
 import (
+	"compress/gzip"
 	"errors"
+	"fmt"
+	"html"
+	"io"
 	"log"
-
-	"github.com/bakape/captchouli/db"
+	"net/http"
+	"os"
+	"strings"
 
 	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/db"
 )
+
+var headers = map[string]string{
+	"Cache-Control":               "no-store",
+	"Access-Control-Allow-Origin": "*",
+	"Content-Encoding":            "gzip",
+	"Content-Type":                "text/html",
+}
 
 // Source of image database to use for captcha image generation
 type DataSource = common.DataSource
 
-// Image rating to use for source dataset
-type Rating = common.Rating
-
 const Gelbooru = common.Gelbooru
-const (
-	Safe         = common.Safe
-	Questionable = common.Questionable
-	Explicit     = common.Explicit
-)
 
 const (
 	// minimum size of image pool for a tag
@@ -31,9 +36,6 @@ const (
 type Options struct {
 	// Source of image database to use for captcha image generation
 	Source DataSource
-
-	// Explicitness ratings to include. Defaults to {Safe}.
-	Ratings []Rating
 
 	// Tags to source for captcha solutions. One tag is randomly chosen for each
 	// generated captcha. Required to contain at least 1 tag but the database
@@ -47,9 +49,8 @@ type Options struct {
 
 // Encapsulates a configured captcha-generation and verification service
 type Service struct {
-	source  DataSource
-	ratings []Rating
-	tags    []string
+	source DataSource
+	tags   []string
 }
 
 // Create new captcha-generation and verification service
@@ -60,12 +61,8 @@ func NewService(opts Options) (s *Service, err error) {
 	}
 
 	s = &Service{
-		source:  opts.Source,
-		tags:    opts.Tags,
-		ratings: opts.Ratings,
-	}
-	if len(s.ratings) == 0 {
-		s.ratings = []Rating{Safe}
+		source: opts.Source,
+		tags:   opts.Tags,
 	}
 
 	err = initClassifier(opts.Source)
@@ -73,41 +70,133 @@ func NewService(opts Options) (s *Service, err error) {
 		return
 	}
 	err = s.initPool()
+	if err != nil {
+		return
+	}
+	log.Println("captchouli: service started")
 	return
 }
 
 // Initialize pool with enough images, if lacking
 func (s *Service) initPool() (err error) {
-	var count int
 	for _, t := range s.tags {
-		first := true
-	check:
-		count, err = db.ImageCount(t, s.source, s.ratings)
+		err = initPool(t, s.source)
 		if err != nil {
 			return
 		}
-		if count >= poolMinSize {
-			continue
-		} else if first {
-			first = false
-			log.Printf("initializing image pool for tag `%s`\n", t)
-		}
-
-		err = fetch(common.FetchRequest{
-			Tag:    t,
-			Rating: s.randomRating(),
-		})
-		if err != nil {
-			return
-		}
-		goto check
 	}
 	return
 }
 
-func (s *Service) randomRating() common.Rating {
-	if len(s.ratings) == 1 {
-		return s.ratings[0]
+func initPool(tag string, source common.DataSource) (err error) {
+	var (
+		count int
+		first = true
+	)
+	for {
+		count, err = db.ImageCount(tag, source)
+		if err != nil {
+			return
+		}
+		if count >= poolMinSize {
+			return
+		} else if first {
+			first = false
+			log.Printf("captchouli: initializing image pool for tag `%s`\n",
+				tag)
+		}
+
+		err = fetch(common.FetchRequest{
+			Tag:    tag,
+			Source: source,
+		})
+		if err != nil {
+			return
+		}
 	}
-	return s.ratings[common.RandomInt(len(s.ratings))]
+}
+
+// Creates a new captcha, writes its HTML contents to w and returns captcha ID.
+//
+// Depending on what type w is, you might want to buffer the output with
+// bufio.NewWriter.
+func (s *Service) NewCaptcha(w io.Writer) (id [64]byte, err error) {
+	tag := s.tags[common.RandomInt(len(s.tags))]
+	id, images, err := db.GenerateCaptcha(tag, s.source)
+	if err != nil {
+		return
+	}
+
+	tempBuf := make([]byte, 4096)
+	copyFile := func(i int) (err error) {
+		f, err := os.Open(thumbPath(images[i]))
+		if err != nil {
+			return
+		}
+		defer f.Close()
+		_, err = io.CopyBuffer(w, f, tempBuf)
+		return
+	}
+
+	writeString := func(s string) error {
+		_, err := w.Write([]byte(s))
+		return err
+	}
+
+	_, err = fmt.Fprintf(w,
+		`<header>Select all images of <b>%s<b></header>
+<div style="width: 450px; height: 450px">`,
+		html.EscapeString(strings.Title(strings.Replace(tag, "_", " ", -1))))
+	if err != nil {
+		return
+	}
+	for i := range images {
+		err = writeString(`<img src="`)
+		if err != nil {
+			return
+		}
+		err = copyFile(i)
+		if err != nil {
+			return
+		}
+		err = writeString(`">`)
+		if err != nil {
+			return
+		}
+	}
+	err = writeString("\n</div>")
+	if err != nil {
+		return
+	}
+
+	if !common.IsTest {
+		scheduleFetch <- common.FetchRequest{tag, s.source}
+	}
+	return
+}
+
+// Serves new captcha generation request with GZIP compression
+func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	err := s.ServeHTTPError(w, r)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		log.Println(err)
+	}
+}
+
+// Like ServeHTTP() but passes any error to caller. Allows for custom error
+// handling.
+func (s *Service) ServeHTTPError(w http.ResponseWriter, r *http.Request,
+) (err error) {
+	h := w.Header()
+	for k, v := range headers {
+		h.Set(k, v)
+	}
+
+	gw := gzip.NewWriter(w)
+	_, err = s.NewCaptcha(gw)
+	if err != nil {
+		return
+	}
+	return gw.Close()
 }

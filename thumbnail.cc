@@ -7,6 +7,9 @@ extern "C" {
 #include <opencv2/opencv.hpp>
 #include <stdexcept>
 
+// Size of thumbnail dimension. thumbnail is always a square.
+static const int thumb_dim = 150;
+
 static const char* _thumbnail(
     cv::CascadeClassifier* c, const char* path, Buffer* thumb)
 {
@@ -36,9 +39,36 @@ static const char* _thumbnail(
         }
     }
 
+    // Increase matched size, if image bellow 150x150.
+    // face should always be a square.
+    if (face.width < thumb_dim && face.height == face.width) {
+        // Perform bounds checks and find the largest equal increase size in all
+        // directions
+        int diff = (150 - face.width) / 2;
+        if (face.x - diff < 0) {
+            diff = face.x;
+        }
+        if (face.y - diff < 0) {
+            diff = face.y;
+        }
+        if (face.x + face.width + diff > colour.cols) {
+            diff = colour.cols - (face.x + face.width);
+        }
+        if (face.y + face.height + diff > colour.rows) {
+            diff = colour.rows - (face.y + face.height);
+        }
+        face.x -= diff;
+        face.y -= diff;
+        face.width += diff;
+        face.height += diff;
+    }
+
+    cv::Mat resized;
+    cv::resize(cv::Mat(colour, face), resized, cv::Size(thumb_dim, thumb_dim),
+        0, 0, CV_INTER_LINEAR);
     std::vector<unsigned char> out;
     static const std::vector<int> params = { CV_IMWRITE_JPEG_QUALITY, 90 };
-    if (!cv::imencode(".jpg", cv::Mat(colour, face), out, params)) {
+    if (!cv::imencode(".jpg", resized, out, params)) {
         throw std::domain_error("could not encode result");
     }
     thumb->data = memcpy(malloc(out.size()), out.data(), out.size());
