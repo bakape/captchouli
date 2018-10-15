@@ -13,7 +13,12 @@ static const int thumb_dim = 150;
 static const char* _thumbnail(
     cv::CascadeClassifier* c, const char* path, Buffer* thumb)
 {
+    static const char no_faces[] = "no faces detected";
+
     const cv::Mat colour = cv::imread(path, cv::IMREAD_COLOR);
+    if (colour.empty()) {
+        return no_faces;
+    }
     cv::Mat tmp1, tmp2;
     cv::cvtColor(colour, tmp1, cv::COLOR_BGR2GRAY);
     cv::equalizeHist(tmp1, tmp2);
@@ -21,7 +26,7 @@ static const char* _thumbnail(
     std::vector<cv::Rect> faces;
     c->detectMultiScale(tmp2, faces, 1.1, 5, 0, cv::Size(50, 50));
     if (!faces.size()) {
-        return "no faces detected";
+        return no_faces;
     }
 
     cv::Rect face;
