@@ -20,15 +20,18 @@ var migrations = []func(*sql.Tx) error{
 			`insert into main (id, val) values('version', '1')`,
 			`create table images (
 				id integer primary key,
-				hash blob not null
+				hash blob not null,
+				blacklist bool not null default false
 			)`,
 			createIndex("images", "hash", true),
+			createIndex("images", "blacklist", false),
 			`create table image_tags (
-				image_id integer not null,
+				image_id integer not null references images on delete cascade,
 				tag text not null,
 				source int not null,
 				primary key (image_id, tag, source)
 			)`,
+			createIndex("image_tags", "image_id", false),
 			createIndex("image_tags", "tag", false),
 			createIndex("image_tags", "source", false),
 		)
@@ -40,10 +43,6 @@ var migrations = []func(*sql.Tx) error{
 				solution blob not null,
 				created datetime not null default current_timestamp
 			)`,
-		)
-	},
-	func(tx *sql.Tx) (err error) {
-		return execAll(tx,
 			createIndex("captchas", "created", false),
 		)
 	},

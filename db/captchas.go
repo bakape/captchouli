@@ -77,7 +77,7 @@ func getMatchingImages(tag string, source common.DataSource,
 	q := sq.Select("hash").
 		From("image_tags").
 		Join("images on images.id = image_id").
-		Where("tag = ? and source = ?", tag, source).
+		Where("tag = ? and source = ? and blacklist = false", tag, source).
 		OrderBy("random()").
 		Limit(3)
 	return scanHashes(q, 0, images, buf)
@@ -87,12 +87,13 @@ func getNonMatchingImages(tag string, images *[9][16]byte, buf *[]byte,
 ) (err error) {
 	q := sq.Select("hash").
 		From("images").
-		Join("image_tags on images.id = image_id").
 		Where(
 			`not exists (
 				select 1
 				from image_tags
-				where image_id = images.id and tag = ?)`, tag).
+				where image_id = images.id and tag = ?)
+			and blacklist = false`,
+			tag).
 		OrderBy("random()").
 		Limit(6)
 	return scanHashes(q, 3, images, buf)
