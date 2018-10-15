@@ -26,6 +26,7 @@ func newService(t *testing.T) *Service {
 }
 
 func TestThumbnailing(t *testing.T) {
+	newService(t)
 	cases := [...]struct {
 		ext string
 	}{
