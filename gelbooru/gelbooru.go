@@ -1,6 +1,7 @@
 package gelbooru
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -79,7 +80,13 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	tags := "solo -photo -monochrome " + req.Tag
+	var w bytes.Buffer
+	w.WriteString("solo -photo -monochrome ")
+	if !req.AllowExplicit {
+		w.WriteString("rating:safe ")
+	}
+	w.WriteString(req.Tag)
+	tags := w.String()
 
 	pages, err := pageCount(req.Tag, tags)
 	if err != nil || pages == 0 {

@@ -73,7 +73,7 @@ static const char* _thumbnail(
     std::vector<unsigned char> out;
     static const std::vector<int> params = { CV_IMWRITE_JPEG_QUALITY, 90 };
     if (!cv::imencode(".jpg", tmp1, out, params)) {
-        throw std::domain_error("could not encode result");
+        return "could not encode result";
     }
     const auto s = out.size();
     thumb->data = memcpy(malloc(s), out.data(), s);

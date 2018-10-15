@@ -22,6 +22,11 @@ var headers = map[string]string{
 	"Content-Type":                "text/html",
 }
 
+// Allow images with explicit content. Note that this only applies to
+// fetching new images for the pool. Once your pool has any explicit images,
+// they will be selected for captchas like any other image.
+var AllowExplicit = false
+
 // Source of image database to use for captcha image generation
 type DataSource = common.DataSource
 
@@ -49,8 +54,9 @@ type Options struct {
 
 // Encapsulates a configured captcha-generation and verification service
 type Service struct {
-	source DataSource
-	tags   []string
+	allowExplicit bool
+	source        DataSource
+	tags          []string
 }
 
 // Create new captcha-generation and verification service
@@ -170,7 +176,7 @@ func (s *Service) NewCaptcha(w io.Writer) (id [64]byte, err error) {
 	}
 
 	if !common.IsTest {
-		scheduleFetch <- common.FetchRequest{tag, s.source}
+		scheduleFetch <- common.FetchRequest{AllowExplicit, tag, s.source}
 	}
 	return
 }

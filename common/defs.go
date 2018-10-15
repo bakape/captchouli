@@ -12,8 +12,9 @@ func (d DataSource) String() string {
 }
 
 type FetchRequest struct {
-	Tag    string
-	Source DataSource
+	AllowExplicit bool
+	Tag           string
+	Source        DataSource
 }
 
 // Generic error with prefix string
