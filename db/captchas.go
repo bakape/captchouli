@@ -7,7 +7,6 @@ import (
 	"math/rand"
 
 	"github.com/Masterminds/squirrel"
-
 	"github.com/bakape/captchouli/common"
 )
 
@@ -89,7 +88,11 @@ func getNonMatchingImages(tag string, images *[9][16]byte, buf *[]byte,
 	q := sq.Select("hash").
 		From("images").
 		Join("image_tags on images.id = image_id").
-		Where("tag != ?", tag).
+		Where(
+			`not exists (
+				select 1
+				from image_tags
+				where image_id = images.id and tag = ?)`, tag).
 		OrderBy("random()").
 		Limit(6)
 	return scanHashes(q, 3, images, buf)
