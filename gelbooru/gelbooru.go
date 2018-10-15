@@ -79,7 +79,7 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	tags := "solo -photo -monochrome" + req.Tag
+	tags := "solo -photo -monochrome " + req.Tag
 
 	pages, err := pageCount(req.Tag, tags)
 	if err != nil || pages == 0 {
@@ -187,6 +187,7 @@ func fetchPage(requested, tags string, page int) (images []image, err error) {
 			"pid":   {strconv.Itoa(page)},
 		}.Encode(),
 	}
+	print(u.String())
 	r, err := http.Get(u.String())
 	if err != nil {
 		return
