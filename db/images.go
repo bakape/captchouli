@@ -29,18 +29,13 @@ func IsInDatabase(md5 [16]byte) (is bool, err error) {
 	return
 }
 
-// Write image to database. An image without tags will count as a blacklisted
-// image.
+// Write image to database
 func InsertImage(img Image) (err error) {
 	dbMu.Lock()
 	defer dbMu.Unlock()
 
 	return InTransaction(func(tx *sql.Tx) (err error) {
-		r, err := withTransaction(tx, sq.
-			Insert("images").
-			Columns("hash").
-			Values(img.MD5[:])).
-			Exec()
+		r, err := withTransaction(tx, insertImage(img.MD5)).Exec()
 		if err != nil {
 			return
 		}
@@ -63,6 +58,22 @@ func InsertImage(img Image) (err error) {
 		}
 		return
 	})
+}
+
+func insertImage(hash [16]byte) squirrel.InsertBuilder {
+	return sq.
+		Insert("images").
+		Columns("hash").
+		Values(hash[:])
+}
+
+// Add image to blacklist so that it is not fetched again
+func BlacklistImage(hash [16]byte) (err error) {
+	dbMu.Lock()
+	defer dbMu.Unlock()
+
+	_, err = insertImage(hash).Exec()
+	return
 }
 
 // Return count of images matching selectors

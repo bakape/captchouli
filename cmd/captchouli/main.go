@@ -9,7 +9,8 @@ import (
 
 var defaultTags = [...]string{
 	"patchouli_knowledge", "cirno", "hakurei_reimu", "kirisame_marisa",
-	"konpaku_youmu", "heart-shaped_pupils",
+	"konpaku_youmu", "heart-shaped_pupils", "kaname_madoka", "sakura_kyouko",
+	"akemi_homura",
 }
 
 func main() {

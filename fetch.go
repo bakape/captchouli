@@ -68,7 +68,7 @@ func fetch(req common.FetchRequest) (err error) {
 	switch err {
 	case nil:
 	case ErrNoFace:
-		return nil
+		return db.BlacklistImage(img.MD5)
 	default:
 		return
 	}
