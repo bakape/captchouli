@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	mRand "math/rand"
+	"path/filepath"
 	"time"
 )
 
@@ -32,4 +33,9 @@ func DecodeMD5(s string) (buf [16]byte, err error) {
 		err = Error{fmt.Errorf("invalid MD5 hash: `%s`", err)}
 	}
 	return
+}
+
+// Return filesystem path to thumbnail file
+func ThumbPath(md5 [16]byte) string {
+	return filepath.Join(RootDir, "images", hex.EncodeToString(md5[:]))
 }

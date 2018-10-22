@@ -10,6 +10,9 @@ import (
 	"github.com/bakape/captchouli/common"
 )
 
+// Number of matching images in each captcha
+const MatchingCount = 4
+
 var _cryptoSource = cryptoSource{}
 
 type cryptoSource struct{}
@@ -31,7 +34,7 @@ func GenerateCaptcha(tag string, src common.DataSource,
 	if err != nil {
 		return
 	}
-	var matched [3][16]byte
+	var matched [MatchingCount][16]byte
 	copy(matched[:], images[:])
 
 	err = getNonMatchingImages(tag, &images, &buf)
@@ -46,9 +49,9 @@ func GenerateCaptcha(tag string, src common.DataSource,
 	// This produces a sorted array of the correct answer indices.
 	// There might be a better way to do this.
 	j := 0
-	var solution [3]byte
-	for i := 0; i < 9 && j < 3; i++ {
-		for k := 0; k < 3; k++ {
+	var solution [MatchingCount]byte
+	for i := 0; i < 9 && j < MatchingCount; i++ {
+		for k := 0; k < MatchingCount; k++ {
 			if matched[k] == images[i] {
 				solution[j] = byte(i)
 				j++
@@ -79,7 +82,7 @@ func getMatchingImages(tag string, source common.DataSource,
 		Join("images on images.id = image_id").
 		Where("tag = ? and source = ? and blacklist = false", tag, source).
 		OrderBy("random()").
-		Limit(3)
+		Limit(MatchingCount)
 	return scanHashes(q, 0, images, buf)
 }
 
@@ -95,8 +98,8 @@ func getNonMatchingImages(tag string, images *[9][16]byte, buf *[]byte,
 			and blacklist = false`,
 			tag).
 		OrderBy("random()").
-		Limit(6)
-	return scanHashes(q, 3, images, buf)
+		Limit(9 - MatchingCount)
+	return scanHashes(q, MatchingCount, images, buf)
 }
 
 func scanHashes(q squirrel.SelectBuilder, i int, images *[9][16]byte,

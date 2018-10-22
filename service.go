@@ -3,16 +3,13 @@ package captchouli
 import (
 	"compress/gzip"
 	"errors"
-	"fmt"
-	"html"
 	"io"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/bakape/captchouli/common"
 	"github.com/bakape/captchouli/db"
+	"github.com/bakape/captchouli/templates"
 )
 
 var headers = map[string]string{
@@ -56,6 +53,7 @@ type Options struct {
 type Service struct {
 	allowExplicit bool
 	source        DataSource
+	urlOverride   string
 	tags          []string
 }
 
@@ -126,54 +124,22 @@ func initPool(tag string, source common.DataSource) (err error) {
 //
 // Depending on what type w is, you might want to buffer the output with
 // bufio.NewWriter.
-func (s *Service) NewCaptcha(w io.Writer) (id [64]byte, err error) {
+func (s *Service) NewCaptcha(colour, background string, w io.Writer,
+) (id [64]byte, err error) {
 	tag := s.tags[common.RandomInt(len(s.tags))]
 	id, images, err := db.GenerateCaptcha(tag, s.source)
 	if err != nil {
 		return
 	}
 
-	tempBuf := make([]byte, 4096)
-	copyFile := func(i int) (err error) {
-		f, err := os.Open(thumbPath(images[i]))
-		if err != nil {
-			return
-		}
-		defer f.Close()
-		_, err = io.CopyBuffer(w, f, tempBuf)
-		return
+	if background == "" {
+		background = "#d6daf0"
+	}
+	if colour == "" {
+		colour = "black"
 	}
 
-	writeString := func(s string) error {
-		_, err := w.Write([]byte(s))
-		return err
-	}
-
-	_, err = fmt.Fprintf(w,
-		`<header>Select all images of <b>%s<b></header>
-<div style="width: 450px; height: 450px">`,
-		html.EscapeString(strings.Title(strings.Replace(tag, "_", " ", -1))))
-	if err != nil {
-		return
-	}
-	for i := range images {
-		err = writeString(`<img src="`)
-		if err != nil {
-			return
-		}
-		err = copyFile(i)
-		if err != nil {
-			return
-		}
-		err = writeString(`">`)
-		if err != nil {
-			return
-		}
-	}
-	err = writeString("\n</div>")
-	if err != nil {
-		return
-	}
+	templates.WriteCaptcha(w, colour, background, tag, id, images)
 
 	if !common.IsTest {
 		scheduleFetch <- common.FetchRequest{AllowExplicit, tag, s.source}
@@ -200,7 +166,8 @@ func (s *Service) ServeHTTPError(w http.ResponseWriter, r *http.Request,
 	}
 
 	gw := gzip.NewWriter(w)
-	_, err = s.NewCaptcha(gw)
+	q := r.URL.Query()
+	_, err = s.NewCaptcha(q.Get("color"), q.Get("background"), gw)
 	if err != nil {
 		return
 	}

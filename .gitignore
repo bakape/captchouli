@@ -15,4 +15,5 @@
 node_modules
 testdata/*thumb.jpg
 */testdata/fetched
-cmd/captchouli/captchouli*
+cmd/captchouli/captchouli
+captchouli
