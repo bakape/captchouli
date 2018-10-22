@@ -3,9 +3,11 @@ package captchouli
 import (
 	"compress/gzip"
 	"errors"
+	"html"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/bakape/captchouli/common"
 	"github.com/bakape/captchouli/db"
@@ -139,7 +141,9 @@ func (s *Service) NewCaptcha(colour, background string, w io.Writer,
 		colour = "black"
 	}
 
-	templates.WriteCaptcha(w, colour, background, tag, id, images)
+	templates.WriteCaptcha(w, colour, background,
+		html.EscapeString(strings.Title(strings.Replace(tag, "_", " ", -1))),
+		id, images)
 
 	if !common.IsTest {
 		scheduleFetch <- common.FetchRequest{AllowExplicit, tag, s.source}
