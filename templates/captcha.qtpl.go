@@ -32,7 +32,7 @@ func StreamCaptcha(qw422016 *qt422016.Writer, colour, background, tag string, id
 	//line captcha.qtpl:22
 	streamencodeID(qw422016, id)
 	//line captcha.qtpl:22
-	qw422016.N().S(`"><header class="captchouli-width captchouli-margin" style="text-align:center; font-size:130%;">Select all images of <b>`)
+	qw422016.N().S(`"><header class="captchouli-width captchouli-margin" style="text-align:center; font-size:130%; overflow:auto;">Select all images of <b>`)
 	//line captcha.qtpl:24
 	qw422016.E().S(tag)
 	//line captcha.qtpl:24

@@ -20,7 +20,7 @@
 	</style>
 	<form class="captchouli-width" style="height:525px; background:{%s background %}; color:{%s colour %}; font-family:Sans-Serif;">
 		<input type="text" name="id" hidden value="{%= encodeID(id) %}">
-		<header class="captchouli-width captchouli-margin" style="text-align:center; font-size:130%;">
+		<header class="captchouli-width captchouli-margin" style="text-align:center; font-size:130%; overflow:auto;">
 			Select all images of <b>{%s tag %}</b>
 		</header>
 		<div class="captchouli-width" style="height:462px;">
