@@ -81,7 +81,8 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	defer mu.Unlock()
 
 	var w bytes.Buffer
-	w.WriteString("solo -photo -monochrome ")
+	w.WriteString(
+		"solo -photo -monochrome -multiple_girls -couple -multiple_boys -cosplay ")
 	if !req.AllowExplicit {
 		w.WriteString("rating:safe ")
 	}
@@ -150,7 +151,7 @@ func pageCount(requested, tags string) (count int, err error) {
 		page += 5
 
 		// Need a limit or we will hit the gelbooru page limit
-		if page >= 100 {
+		if page >= 200 {
 			break
 		}
 	}

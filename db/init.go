@@ -73,6 +73,9 @@ func Open() (err error) {
 
 // Close database connection
 func Close() error {
+	dbMu.Lock()
+	defer dbMu.Unlock()
+
 	return db.Close()
 }
 

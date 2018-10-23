@@ -41,9 +41,11 @@ var migrations = []func(*sql.Tx) error{
 			`create table captchas (
 				id blob primary key,
 				solution blob not null,
+				status int not null default 0,
 				created datetime not null default current_timestamp
 			)`,
 			createIndex("captchas", "created", false),
+			createIndex("captchas", "status", false),
 		)
 	},
 }

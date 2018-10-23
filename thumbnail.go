@@ -22,7 +22,7 @@ import (
 
 var (
 	classifiers   = make(map[common.DataSource]unsafe.Pointer)
-	classifiersMu sync.RWMutex
+	classifiersMu sync.Mutex
 )
 
 func initClassifier(src common.DataSource) (err error) {
@@ -72,9 +72,9 @@ func initClassifier(src common.DataSource) (err error) {
 // Generate a thumbnail of passed image.
 // NOTE: the generated thumbnail is not deterministic.
 func thumbnail(path string, src common.DataSource) (thumb []byte, err error) {
-	classifiersMu.RLock()
+	classifiersMu.Lock()
+	defer classifiersMu.Unlock()
 	classifier := classifiers[src]
-	classifiersMu.RUnlock()
 
 	var out C.Buffer
 	pathC := C.CString(path)

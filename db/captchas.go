@@ -126,34 +126,89 @@ func scanHashes(q squirrel.SelectBuilder, i int, images *[9][16]byte,
 	return
 }
 
-// Check if a solution to a captcha is valid
-func CheckCaptcha(id [64]byte, solution [3]byte) (ok bool, err error) {
+// Check, if a solution to a captcha is valid
+func CheckSolution(id [64]byte, solution []byte) (solved bool, err error) {
 	dbMu.Lock()
 	defer dbMu.Unlock()
 
 	err = InTransaction(func(tx *sql.Tx) (err error) {
-		var res [3]byte
-		b := res[:]
+		var (
+			correct [MatchingCount]byte
+			buf     []byte
+		)
 		err = withTransaction(tx, sq.
 			Select("solution").
 			From("captchas").
-			Where("id = ?", id[:])).
+			Where("id = ? and status = 0", id[:])).
 			QueryRow().
-			Scan(&b)
+			Scan(&buf)
 		switch err {
 		case nil:
-			ok = res == solution
+			copy(correct[:], buf)
 		case sql.ErrNoRows:
-			return nil
+			err = nil
+			return
 		default:
 			return
 		}
 
+		solved = isSolved(correct, solution)
+		var status int
+		if solved {
+			status = 1
+		} else {
+			status = 2
+		}
 		_, err = withTransaction(tx, sq.
-			Delete("captcha").
+			Update("captchas").
+			Set("status", status).
 			Where("id = ?", id[:])).
 			Exec()
 		return
 	})
+	return
+}
+
+func isSolved(correct [MatchingCount]byte, proposed []byte) bool {
+	solved := 0
+	for _, id := range proposed {
+		for _, c := range correct {
+			if id == c {
+				solved++
+				goto next
+			}
+		}
+		return false
+	next:
+	}
+	return solved >= MatchingCount-1
+}
+
+// Get solution for captcha by ID
+func GetSolution(id [64]byte) (solution []byte, err error) {
+	dbMu.Lock()
+	defer dbMu.Unlock()
+
+	err = sq.
+		Select("solution").
+		From("captchas").
+		Where("id = ?", id[:]).
+		QueryRow().
+		Scan(&solution)
+	return
+}
+
+// Return, if captcha exists and is solved
+func IsSolved(id [64]byte) (is bool, err error) {
+	dbMu.RLock()
+	defer dbMu.RUnlock()
+
+	err = sq.Select("status = 1").
+		From("captchas").
+		Where("id = ?", id[:]).
+		Scan(&is)
+	if err != sql.ErrNoRows {
+		err = nil
+	}
 	return
 }

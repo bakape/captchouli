@@ -30,5 +30,5 @@ func main() {
 	}
 	defer captchouli.Close()
 
-	log.Println(http.ListenAndServe(":8003", s))
+	log.Println(http.ListenAndServe(":8003", s.Router()))
 }

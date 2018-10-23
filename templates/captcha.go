@@ -3,7 +3,7 @@
 package templates
 
 import (
-	"encoding/hex"
+	"encoding/base64"
 	"io"
 	"os"
 
@@ -12,7 +12,9 @@ import (
 )
 
 func streamencodeID(w *quicktemplate.Writer, id [64]byte) {
-	hex.NewEncoder(w.W()).Write(id[:])
+	enc := base64.NewEncoder(base64.StdEncoding, w.W())
+	defer enc.Close()
+	enc.Write(id[:])
 }
 
 func streamthumbnail(w *quicktemplate.Writer, id [16]byte, tempBuf []byte) {

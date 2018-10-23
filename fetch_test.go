@@ -11,7 +11,9 @@ func TestFetch(t *testing.T) {
 	err := fetch(common.FetchRequest{
 		Tag: "patchouli_knowledge",
 	})
-	if err != nil {
+	switch err {
+	case nil, ErrNoFace:
+	default:
 		t.Fatal(err)
 	}
 }

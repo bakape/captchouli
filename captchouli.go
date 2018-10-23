@@ -1,5 +1,7 @@
 package captchouli
 
+// #include "thumbnail.h"
+import "C"
 import (
 	"fmt"
 
@@ -19,7 +21,14 @@ func Open() error {
 	return db.Open()
 }
 
-// Close open storage resources
+// Close open resources
 func Close() error {
+	classifiersMu.Lock()
+	for s, c := range classifiers {
+		C.unload_classifier(c)
+		delete(classifiers, s)
+	}
+	classifiersMu.Unlock()
+
 	return db.Close()
 }

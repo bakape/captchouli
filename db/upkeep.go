@@ -8,7 +8,7 @@ import (
 )
 
 // Time it takes for one captcha to expire
-const expiryTime = 20 * time.Minute
+const expiryTime = 30 * time.Minute
 
 func runUpkeepTasks() {
 	go func() {
@@ -34,7 +34,7 @@ func deleteStaleCaptchas() error {
 	defer dbMu.Unlock()
 
 	_, err := sq.Delete("captchas").
-		Where("created < ? ", time.Now().Add(-expiryTime)).
+		Where("created < ? ", time.Now().Add(-expiryTime).UTC()).
 		Exec()
 	return err
 }
