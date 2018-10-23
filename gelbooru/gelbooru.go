@@ -73,6 +73,20 @@ func (d *decoder) toImage(tag string, tmp map[string]struct{},
 	return
 }
 
+// Returns, if image is a valid target for fetching. Avoids downloading WebMs
+// and GIFs.
+func (d *decoder) isValid() bool {
+	if d.Sample {
+		return true
+	}
+	for _, s := range [...]string{"jpg", "jpeg", "png"} {
+		if strings.HasSuffix(d.FileURL, s) {
+			return true
+		}
+	}
+	return false
+}
+
 // Fetch random matching file from Gelbooru.
 // f can be nil, if no file is matched, even when err = nil.
 // Caller must close and remove temporary file after use.
@@ -208,8 +222,11 @@ func fetchPage(requested, tags string, page int) (images []image, err error) {
 	}
 	images = make([]image, len(dec))
 	tmp := make(map[string]struct{}, 128)
-	for i := range dec {
-		images[i], err = dec[i].toImage(requested, tmp)
+	for i, d := range dec {
+		if !d.isValid() {
+			continue
+		}
+		images[i], err = d.toImage(requested, tmp)
 		if err != nil {
 			return
 		}
