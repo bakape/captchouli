@@ -132,10 +132,8 @@ func (s *Service) initTag(tag string) (err error) {
 			return
 		} else if first {
 			first = false
-			if !s.opts.Quiet {
-				log.Printf("captchouli: initializing image pool for tag `%s`\n",
-					tag)
-			}
+			log.Printf("captchouli: initializing image pool for tag `%s`\n",
+				tag)
 		}
 
 		err = fetch(common.FetchRequest{
