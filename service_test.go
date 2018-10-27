@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -32,7 +31,7 @@ func TestCaptcha(t *testing.T) {
 		t.Fatal(err)
 	}
 	idStr := findID(doc)
-	id, err := decodeID(idStr)
+	id, err := DecodeID(idStr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,10 +40,10 @@ func TestCaptcha(t *testing.T) {
 		t.Fatal(err)
 	}
 	data := url.Values{
-		"id": {idStr},
+		"captchouli-id": {idStr},
 	}
 	for _, i := range solution {
-		data.Set(strconv.Itoa(int(i)), "on")
+		data.Set(solutionIDs[i], "on")
 	}
 	dataR := strings.NewReader(data.Encode())
 
@@ -79,7 +78,7 @@ func assertCode(t *testing.T, w *httptest.ResponseRecorder, code int) {
 
 func findID(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "input" {
-		if getAttr(n, "name") == "id" {
+		if getAttr(n, "name") == "captchouli-id" {
 			return getAttr(n, "value")
 		}
 	}

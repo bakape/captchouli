@@ -19,9 +19,9 @@
 		}
 	</style>
 	<form method="post" class="captchouli-width" style="height:525px; background:{%s background %}; color:{%s colour %}; font-family:Sans-Serif;">
-		<input type="text" name="id" hidden value="{%= encodeID(id) %}">
-		<input type="text" name="colour" hidden value="{%s colour %}">
-		<input type="text" name="background" hidden value="{%s background%}">
+		<input type="text" name="captchouli-id" hidden value="{%= encodeID(id) %}">
+		<input type="text" name="captchouli-colour" hidden value="{%s colour %}">
+		<input type="text" name="captchouli-background" hidden value="{%s background%}">
 		<header class="captchouli-width captchouli-margin" style="text-align:center; font-size:130%; overflow:auto;">
 			Select all images of <b>{%s tag %}</b>
 		</header>
@@ -29,7 +29,7 @@
 			{% code buf := make([]byte, 4096) %}
 			{% for i, img := range images %}
 				<label>
-					<input type="checkbox" name="{%d i %}" class="captchouli-checkbox">
+					<input type="checkbox" name="captchouli-{%d i %}" class="captchouli-checkbox">
 					<img class="captchouli-img" draggable="false" src="{%= thumbnail(img, buf) %}">
 				</label>
 			{% endfor %}

@@ -28,15 +28,15 @@ func StreamCaptcha(qw422016 *qt422016.Writer, colour, background, tag string, id
 	//line captcha.qtpl:21
 	qw422016.E().S(colour)
 	//line captcha.qtpl:21
-	qw422016.N().S(`; font-family:Sans-Serif;"><input type="text" name="id" hidden value="`)
+	qw422016.N().S(`; font-family:Sans-Serif;"><input type="text" name="captchouli-id" hidden value="`)
 	//line captcha.qtpl:22
 	streamencodeID(qw422016, id)
 	//line captcha.qtpl:22
-	qw422016.N().S(`"><input type="text" name="colour" hidden value="`)
+	qw422016.N().S(`"><input type="text" name="captchouli-colour" hidden value="`)
 	//line captcha.qtpl:23
 	qw422016.E().S(colour)
 	//line captcha.qtpl:23
-	qw422016.N().S(`"><input type="text" name="background" hidden value="`)
+	qw422016.N().S(`"><input type="text" name="captchouli-background" hidden value="`)
 	//line captcha.qtpl:24
 	qw422016.E().S(background)
 	//line captcha.qtpl:24
@@ -51,7 +51,7 @@ func StreamCaptcha(qw422016 *qt422016.Writer, colour, background, tag string, id
 	//line captcha.qtpl:30
 	for i, img := range images {
 		//line captcha.qtpl:30
-		qw422016.N().S(`<label><input type="checkbox" name="`)
+		qw422016.N().S(`<label><input type="checkbox" name="captchouli-`)
 		//line captcha.qtpl:32
 		qw422016.N().D(i)
 		//line captcha.qtpl:32
