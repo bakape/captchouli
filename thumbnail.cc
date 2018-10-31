@@ -10,7 +10,7 @@ extern "C" {
 // Size of thumbnail dimension. thumbnail is always a square.
 static const int thumb_dim = 150;
 
-static const char* _thumbnail(
+static const char* thumbnail(
     cv::CascadeClassifier* c, const char* path, Buffer* thumb)
 {
     static const char no_faces[] = "no faces detected";
@@ -100,7 +100,7 @@ static char* catch_errors(std::function<const char*()> fn)
     }
 }
 
-extern "C" void* load_classifier(const char* path)
+extern "C" void* cpli_load_classifier(const char* path)
 {
     auto c = new cv::CascadeClassifier();
     if (!c->load(path)) {
@@ -110,15 +110,16 @@ extern "C" void* load_classifier(const char* path)
     return c;
 }
 
-extern "C" void unload_classifier(void* c)
+extern "C" void cpli_unload_classifier(void* c)
 {
     delete static_cast<cv::CascadeClassifier*>(c);
 }
 
-extern "C" char* thumbnail(void* classifier, const char* path, Buffer* thumb)
+extern "C" char* cpli_thumbnail(
+    void* classifier, const char* path, Buffer* thumb)
 {
     return catch_errors([=]() {
-        return _thumbnail(
+        return thumbnail(
             static_cast<cv::CascadeClassifier*>(classifier), path, thumb);
     });
 }

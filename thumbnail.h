@@ -6,7 +6,7 @@ typedef struct {
     size_t size;
 } Buffer;
 
-char* thumbnail(void* classifier, const char* path, Buffer* thumb);
+char* cpli_thumbnail(void* classifier, const char* path, Buffer* thumb);
 
-void* load_classifier(const char* path);
-void unload_classifier(void* c);
+void* cpli_load_classifier(const char* path);
+void cpli_unload_classifier(void* c);

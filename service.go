@@ -74,9 +74,6 @@ type Options struct {
 	// character's face, such as who the character is (example: "cirno") or a
 	// facial feature of the character (example: "smug").
 	Tags []string
-
-	// Optional function to execute on client failure to solve captcha
-	OnFailure func(id [64]byte, r *http.Request) error
 }
 
 // Encapsulates a configured captcha-generation and verification service
@@ -150,7 +147,7 @@ func (s *Service) initTag(tag string) (err error) {
 //
 // Depending on what type w is, you might want to buffer the output with
 // bufio.NewWriter.
-func (s *Service) NewCaptcha(colour, background string, w io.Writer,
+func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 ) (id [64]byte, err error) {
 	tag := s.opts.Tags[common.RandomInt(len(s.opts.Tags))]
 	id, images, err := db.GenerateCaptcha(tag, s.opts.Source)
@@ -178,7 +175,7 @@ func (s *Service) NewCaptcha(colour, background string, w io.Writer,
 
 // Check a captcha solution for validity.
 // solution: slice of selected image numbers
-func (s *Service) CheckCaptcha(id [64]byte, solution []byte) error {
+func CheckCaptcha(id [64]byte, solution []byte) error {
 	solved, err := db.CheckSolution(id, solution)
 	if err != nil {
 		return err
@@ -192,19 +189,20 @@ func (s *Service) CheckCaptcha(id [64]byte, solution []byte) error {
 // The router implements http.Handler.
 func (s *Service) Router() *httptreemux.ContextMux {
 	r := httptreemux.NewContextMux()
-	r.GET("/", s.ServeNewCaptcha)
-	r.POST("/", s.ServeCheckCaptcha)
-	r.POST("/status", s.ServeStatus)
+	r.GET("/", func(w http.ResponseWriter, r *http.Request) {
+		handleError(w, s.ServeNewCaptcha(w, r))
+	})
+	r.POST("/", func(w http.ResponseWriter, r *http.Request) {
+		handleError(w, ServeCheckCaptcha(w, r))
+	})
+	r.POST("/status", func(w http.ResponseWriter, r *http.Request) {
+		handleError(w, ServeStatus(w, r))
+	})
 	return r
 }
 
 // Generate new captcha and serve its HTML form
-func (s *Service) ServeNewCaptcha(w http.ResponseWriter, r *http.Request) {
-	handleError(w, s.ServeNewCaptchaErr(w, r))
-}
-
-// Like ServeNewCaptcha but returns error for custom error handling
-func (s *Service) ServeNewCaptchaErr(w http.ResponseWriter, r *http.Request,
+func (s *Service) ServeNewCaptcha(w http.ResponseWriter, r *http.Request,
 ) (err error) {
 	gw := gzip.NewWriter(w)
 	defer gw.Close()
@@ -215,29 +213,23 @@ func (s *Service) ServeNewCaptchaErr(w http.ResponseWriter, r *http.Request,
 	}
 
 	q := r.URL.Query()
-	_, err = s.NewCaptcha(q.Get("captchouli-color"),
-		q.Get("captchouli-background"), gw)
+	_, err = s.NewCaptcha(gw, q.Get("captchouli-color"),
+		q.Get("captchouli-background"))
 	return
 }
 
 // Serve POST requests for captcha solution validation
-func (s *Service) ServeCheckCaptcha(w http.ResponseWriter, r *http.Request) {
-	handleError(w, s.ServeCheckCaptchaError(w, r))
-}
-
-// Like ServeCheckCaptcha but returns error for custom error handling
-func (s *Service) ServeCheckCaptchaError(w http.ResponseWriter, r *http.Request,
-) (err error) {
-	var (
-		id       [64]byte
-		solution []byte
-	)
-	id, solution, err = ExtractSolution(r)
+func ServeCheckCaptcha(w http.ResponseWriter, r *http.Request) (err error) {
+	id, err := ExtractID(r)
+	if err != nil {
+		return
+	}
+	solution, err := ExtractSolution(r)
 	if err != nil {
 		return
 	}
 
-	err = s.CheckCaptcha(id, solution)
+	err = CheckCaptcha(id, solution)
 	f := r.Form
 	switch err {
 	case nil:
@@ -261,9 +253,6 @@ func (s *Service) ServeCheckCaptchaError(w http.ResponseWriter, r *http.Request,
 		}
 		u.RawQuery = q.Encode()
 		http.Redirect(w, r, u.String(), 302)
-		if s.opts.OnFailure != nil {
-			err = s.opts.OnFailure(id, r)
-		}
 	}
 	return
 }
@@ -280,13 +269,7 @@ func handleError(w http.ResponseWriter, err error) {
 }
 
 // Serve captcha solved status
-func (s *Service) ServeStatus(w http.ResponseWriter, r *http.Request) {
-	handleError(w, s.ServeStatusError(w, r))
-}
-
-// Like ServeStatus but returns error for custom error handling
-func (s *Service) ServeStatusError(w http.ResponseWriter, r *http.Request,
-) (err error) {
+func ServeStatus(w http.ResponseWriter, r *http.Request) (err error) {
 	id, err := ExtractID(r)
 	if err != nil {
 		return
@@ -300,9 +283,8 @@ func (s *Service) ServeStatusError(w http.ResponseWriter, r *http.Request,
 }
 
 // Extact captcha ID and solution from request
-func ExtractSolution(r *http.Request,
-) (id [64]byte, solution []byte, err error) {
-	id, err = ExtractID(r)
+func ExtractSolution(r *http.Request) (solution []byte, err error) {
+	err = r.ParseForm()
 	if err != nil {
 		return
 	}
@@ -329,6 +311,10 @@ func ExtractID(r *http.Request) (id [64]byte, err error) {
 
 // Decode captcha ID from base64 string
 func DecodeID(s string) (id [64]byte, err error) {
+	if s == "" {
+		err = ErrInvalidID
+		return
+	}
 	buf, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return

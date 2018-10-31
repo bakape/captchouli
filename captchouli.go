@@ -25,7 +25,7 @@ func Open() error {
 func Close() error {
 	classifiersMu.Lock()
 	for s, c := range classifiers {
-		C.unload_classifier(c)
+		C.cpli_unload_classifier(c)
 		delete(classifiers, s)
 	}
 	classifiersMu.Unlock()

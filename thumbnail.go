@@ -61,7 +61,7 @@ func initClassifier(src common.DataSource) (err error) {
 
 	name := C.CString(tmp.Name())
 	defer C.free(unsafe.Pointer(name))
-	c = C.load_classifier(name)
+	c = C.cpli_load_classifier(name)
 	if c == nil {
 		return Error{fmt.Errorf("unable to load classifier: %s", src)}
 	}
@@ -80,7 +80,7 @@ func thumbnail(path string, src common.DataSource) (thumb []byte, err error) {
 	pathC := C.CString(path)
 	defer C.free(unsafe.Pointer(pathC))
 
-	errC := C.thumbnail(classifier, pathC, &out)
+	errC := C.cpli_thumbnail(classifier, pathC, &out)
 	defer func() {
 		if errC != nil {
 			C.free(unsafe.Pointer(errC))
