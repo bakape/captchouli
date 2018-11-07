@@ -210,8 +210,11 @@ func (s *Service) ServeNewCaptcha(w http.ResponseWriter, r *http.Request,
 		h.Set(k, v)
 	}
 
-	q := r.URL.Query()
-	_, err = s.NewCaptcha(gw, q.Get(ColourKey), q.Get(BackgroundKey))
+	err = r.ParseForm()
+	if err != nil {
+		return
+	}
+	_, err = s.NewCaptcha(gw, r.Form.Get(ColourKey), r.Form.Get(BackgroundKey))
 	return
 }
 
@@ -228,12 +231,10 @@ func (s *Service) ServeCheckCaptcha(w http.ResponseWriter, r *http.Request,
 	}
 
 	err = CheckCaptcha(id, solution)
-	f := r.Form
 	switch err {
 	case nil:
-		w.Write([]byte(f.Get(IDKey)))
+		w.Write([]byte("OK"))
 	case ErrInvalidSolution:
-		w.WriteHeader(205)
 		err = s.ServeNewCaptcha(w, r)
 	}
 	return
