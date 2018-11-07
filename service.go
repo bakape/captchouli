@@ -2,14 +2,12 @@ package captchouli
 
 import (
 	"compress/gzip"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"html"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -193,7 +191,7 @@ func (s *Service) Router() *httptreemux.ContextMux {
 		handleError(w, s.ServeNewCaptcha(w, r))
 	})
 	r.POST("/", func(w http.ResponseWriter, r *http.Request) {
-		handleError(w, ServeCheckCaptcha(w, r))
+		handleError(w, s.ServeCheckCaptcha(w, r))
 	})
 	r.POST("/status", func(w http.ResponseWriter, r *http.Request) {
 		handleError(w, ServeStatus(w, r))
@@ -213,13 +211,13 @@ func (s *Service) ServeNewCaptcha(w http.ResponseWriter, r *http.Request,
 	}
 
 	q := r.URL.Query()
-	_, err = s.NewCaptcha(gw, q.Get("captchouli-color"),
-		q.Get("captchouli-background"))
+	_, err = s.NewCaptcha(gw, q.Get(ColourKey), q.Get(BackgroundKey))
 	return
 }
 
 // Serve POST requests for captcha solution validation
-func ServeCheckCaptcha(w http.ResponseWriter, r *http.Request) (err error) {
+func (s *Service) ServeCheckCaptcha(w http.ResponseWriter, r *http.Request,
+) (err error) {
 	id, err := ExtractID(r)
 	if err != nil {
 		return
@@ -233,26 +231,10 @@ func ServeCheckCaptcha(w http.ResponseWriter, r *http.Request) (err error) {
 	f := r.Form
 	switch err {
 	case nil:
-		w.Write([]byte(f.Get("captchouli-id")))
+		w.Write([]byte(f.Get(IDKey)))
 	case ErrInvalidSolution:
-		err = nil
-		var (
-			q url.Values
-			u url.URL
-		)
-		for _, k := range [...]string{
-			"captchouli-color", "captchouli-background",
-		} {
-			s := f.Get(k)
-			if s != "" {
-				if q == nil {
-					q = make(url.Values)
-				}
-				q.Set(k, s)
-			}
-		}
-		u.RawQuery = q.Encode()
-		http.Redirect(w, r, u.String(), 302)
+		w.WriteHeader(205)
+		err = s.ServeNewCaptcha(w, r)
 	}
 	return
 }
@@ -268,7 +250,8 @@ func handleError(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), code)
 }
 
-// Serve captcha solved status
+// Serve captcha solved status. The captcha is deleted on a successful check to
+// prevent replayagain attacks.
 func ServeStatus(w http.ResponseWriter, r *http.Request) (err error) {
 	id, err := ExtractID(r)
 	if err != nil {
@@ -279,50 +262,5 @@ func ServeStatus(w http.ResponseWriter, r *http.Request) (err error) {
 		return
 	}
 	w.Write(strconv.AppendBool(nil, solved))
-	return
-}
-
-// Extact captcha ID and solution from request
-func ExtractSolution(r *http.Request) (solution []byte, err error) {
-	err = r.ParseForm()
-	if err != nil {
-		return
-	}
-
-	solution = make([]byte, 0, 4)
-	for i := 0; i < 9; i++ {
-		s := r.Form.Get(solutionIDs[i])
-		if s == "on" {
-			solution = append(solution, byte(i))
-		}
-	}
-
-	return
-}
-
-// Decode captcha ID from POSt request
-func ExtractID(r *http.Request) (id [64]byte, err error) {
-	err = r.ParseForm()
-	if err != nil {
-		return
-	}
-	return DecodeID(r.Form.Get("captchouli-id"))
-}
-
-// Decode captcha ID from base64 string
-func DecodeID(s string) (id [64]byte, err error) {
-	if s == "" {
-		err = ErrInvalidID
-		return
-	}
-	buf, err := base64.StdEncoding.DecodeString(s)
-	if err != nil {
-		return
-	}
-	if len(buf) != 64 {
-		err = ErrInvalidID
-		return
-	}
-	copy(id[:], buf)
 	return
 }

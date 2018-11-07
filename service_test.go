@@ -1,14 +1,13 @@
 package captchouli
 
 import (
-	"compress/gzip"
+	"encoding/base64"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 
-	"github.com/bakape/captchouli/db"
-	"golang.org/x/net/html"
+	"github.com/bakape/captchouli/common"
 )
 
 func TestCaptcha(t *testing.T) {
@@ -21,26 +20,12 @@ func TestCaptcha(t *testing.T) {
 	assertCode(t, w, 200)
 
 	// Generate solution
-	gzr, err := gzip.NewReader(w.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer gzr.Close()
-	doc, err := html.Parse(gzr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	idStr := findID(doc)
-	id, err := DecodeID(idStr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	solution, err := db.GetSolution(id)
+	id, solution, err := ExtractCaptcha(w.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 	data := url.Values{
-		"captchouli-id": {idStr},
+		common.IDKey: {base64.StdEncoding.EncodeToString(id[:])},
 	}
 	for _, i := range solution {
 		data.Set(solutionIDs[i], "on")
@@ -48,6 +33,8 @@ func TestCaptcha(t *testing.T) {
 	dataR := strings.NewReader(data.Encode())
 
 	testRequest := func(url string, code int) {
+		t.Helper()
+
 		dataR.Seek(0, 0)
 		r = httptest.NewRequest("POST", url, dataR)
 		r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -65,8 +52,14 @@ func TestCaptcha(t *testing.T) {
 		t.Fatal(s)
 	}
 
+	// Second captcha should be deleted now
+	testRequest("/status", 200)
+	if s := w.Body.String(); s != "false" {
+		t.Fatal(s)
+	}
+
 	// Failure redirect
-	testRequest("/", 302)
+	testRequest("/", 205)
 }
 
 func assertCode(t *testing.T, w *httptest.ResponseRecorder, code int) {
@@ -74,30 +67,4 @@ func assertCode(t *testing.T, w *httptest.ResponseRecorder, code int) {
 	if w.Code != code {
 		t.Fatal(w.Code)
 	}
-}
-
-func findID(n *html.Node) string {
-	if n.Type == html.ElementNode && n.Data == "input" {
-		if getAttr(n, "name") == "captchouli-id" {
-			return getAttr(n, "value")
-		}
-	}
-
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		found := findID(c)
-		if found != "" {
-			return found
-		}
-	}
-
-	return ""
-}
-
-func getAttr(n *html.Node, key string) string {
-	for _, attr := range n.Attr {
-		if attr.Key == key {
-			return attr.Val
-		}
-	}
-	return ""
 }

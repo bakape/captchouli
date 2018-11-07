@@ -95,8 +95,7 @@ static char* catch_errors(std::function<const char*()> fn)
         }
         return nullptr;
     } catch (const std::exception& ex) {
-        auto err = ex.what();
-        return malloc_string(err);
+        return malloc_string(ex.what());
     }
 }
 

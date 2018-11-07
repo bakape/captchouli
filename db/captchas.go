@@ -198,17 +198,22 @@ func GetSolution(id [64]byte) (solution []byte, err error) {
 	return
 }
 
-// Return, if captcha exists and is solved
+// Return, if captcha exists and is solved. The captcha is deleted on a
+// successful check to prevent replayagain attacks.
 func IsSolved(id [64]byte) (is bool, err error) {
-	dbMu.RLock()
-	defer dbMu.RUnlock()
+	dbMu.Lock()
+	defer dbMu.Unlock()
 
-	err = sq.Select("status = 1").
-		From("captchas").
-		Where("id = ?", id[:]).
-		Scan(&is)
-	if err != sql.ErrNoRows {
-		err = nil
+	res, err := sq.Delete("captchas").
+		Where("id = ? and status = 1", id[:]).
+		Exec()
+	if err != nil {
+		return
 	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return
+	}
+	is = n != 0
 	return
 }

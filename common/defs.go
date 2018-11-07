@@ -7,6 +7,13 @@ const (
 	Gelbooru DataSource = iota
 )
 
+const (
+	// Keys used as names for input elements in captcha form HTML
+	IDKey         = "captchouli-id"
+	ColourKey     = "captchouli-color"
+	BackgroundKey = "captchouli-background"
+)
+
 func (d DataSource) String() string {
 	return "gelbooru"
 }
