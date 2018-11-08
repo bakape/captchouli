@@ -59,7 +59,7 @@ func TestCaptcha(t *testing.T) {
 	}
 
 	// Failure redirect
-	testRequest("/", 205)
+	testRequest("/", 200)
 }
 
 func assertCode(t *testing.T, w *httptest.ResponseRecorder, code int) {

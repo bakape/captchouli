@@ -92,7 +92,7 @@ func NewService(opts Options) (s *Service, err error) {
 	if err != nil {
 		return
 	}
-	initPool()
+	s.initPool()
 	if !s.opts.Quiet {
 		log.Println("captchouli: service started")
 	}
