@@ -96,7 +96,7 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 
 	var w bytes.Buffer
 	w.WriteString(
-		"solo -photo -monochrome -multiple_girls -couple -multiple_boys -cosplay ")
+		"solo -photo -monochrome -multiple_girls -couple -multiple_boys -cosplay -objectification ")
 	if !req.AllowExplicit {
 		w.WriteString("rating:safe ")
 	}
