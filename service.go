@@ -92,10 +92,7 @@ func NewService(opts Options) (s *Service, err error) {
 	if err != nil {
 		return
 	}
-	err = s.initPool()
-	if err != nil {
-		return
-	}
+	initPool()
 	if !s.opts.Quiet {
 		log.Println("captchouli: service started")
 	}
@@ -103,14 +100,19 @@ func NewService(opts Options) (s *Service, err error) {
 }
 
 // Initialize pool with enough images, if lacking
-func (s *Service) initPool() (err error) {
+func (s *Service) initPool() {
+	completed := make([]string, 0, len(s.opts.Tags))
 	for _, t := range s.opts.Tags {
-		err = s.initTag(t)
+		err := s.initTag(t)
 		if err != nil {
-			return
+			log.Printf(
+				"captchouli: error initializing image pool for tag `%s`: %s",
+				t, err)
+		} else {
+			completed = append(completed, t)
 		}
 	}
-	return
+	s.opts.Tags = completed
 }
 
 func (s *Service) initTag(tag string) (err error) {
