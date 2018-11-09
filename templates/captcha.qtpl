@@ -30,6 +30,8 @@
 			.captchouli-form {
 				position: fixed;
 				z-index: 1000;
+				left: 0;
+    			top: 0;
 			}
 			.captchouli-margin {
 				margin: 0;
@@ -40,6 +42,8 @@
 				overflow-y: scroll;
 				position: fixed;
 				z-index: 1000;
+				left: 0;
+    			top: 0;
 				max-height: 100%;
 			}
 			.captchouli-margin {
