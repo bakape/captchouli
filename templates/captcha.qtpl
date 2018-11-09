@@ -11,22 +11,50 @@
 		.captchouli-img {
 			margin: 2px;
 			user-select: none;
+			max-width: calc((100% - 12px) / 3);
+    		max-height: calc((100% - 12px) / 3);
 		}
 		.captchouli-width {
 			width: 462px;
 		}
+		.captchouli-form {
+			height: 525px
+		}
 		.captchouli-margin {
 			margin: 4px 0;
 		}
+		@media screen and (max-width: 462px) {
+			.captchouli-width {
+				max-width: 100%;
+			}
+			.captchouli-form {
+				position: fixed;
+				z-index: 1000;
+			}
+			.captchouli-margin {
+				margin: 0;
+			}
+		}
+		@media screen and (max-height: 525px) {
+			.captchouli-form {
+				overflow-y: scroll;
+				position: fixed;
+				z-index: 1000;
+				max-height: 100%;
+			}
+			.captchouli-margin {
+				margin: 0;
+			}
+		}
 	</style>
-	<form method="post" class="captchouli-width" style="height:525px; background:{%s background %}; color:{%s colour %}; font-family:Sans-Serif;">
+	<form method="post" class="captchouli-width captchouli-form" style="background:{%s background %}; color:{%s colour %}; font-family:Sans-Serif;">
 		<input type="text" name="{%s= common.IDKey %}" hidden value="{%= encodeID(id) %}">
 		<input type="text" name="{%s= common.ColourKey %}" hidden value="{%s colour %}">
 		<input type="text" name="{%s= common.BackgroundKey %}" hidden value="{%s background%}">
 		<header class="captchouli-width captchouli-margin" style="text-align:center; font-size:130%; overflow:auto;">
 			Select all images of <b>{%s tag %}</b>
 		</header>
-		<div class="captchouli-width" style="height:462px;">
+		<div class="captchouli-width">
 			{% code buf := make([]byte, 4096) %}
 			{% for i, img := range images %}
 				<label>
