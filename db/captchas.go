@@ -10,9 +10,6 @@ import (
 	"github.com/bakape/captchouli/common"
 )
 
-// Number of matching images in each captcha
-const MatchingCount = 4
-
 var _cryptoSource = cryptoSource{}
 
 type cryptoSource struct{}
@@ -20,24 +17,24 @@ type cryptoSource struct{}
 func (cryptoSource) Int63() int64 {
 	var b [8]byte
 	crypto.Read(b[:])
-	// mask off sign bit to ensure positive number
+	// Mask off sign bit to ensure positive number
 	return int64(binary.LittleEndian.Uint64(b[:]) & (1<<63 - 1))
 }
 
 func (cryptoSource) Seed(_ int64) {}
 
-// Generate a new captcha and return it ID and image list in order
+// Generate a new captcha and return its ID and image list in order
 func GenerateCaptcha(tag string, src common.DataSource,
 ) (id [64]byte, images [9][16]byte, err error) {
 	buf := make([]byte, 16)
-	err = getMatchingImages(tag, src, &images, &buf)
+	matchedCount, err := getMatchingImages(tag, src, &images, &buf)
 	if err != nil {
 		return
 	}
-	var matched [MatchingCount][16]byte
-	copy(matched[:], images[:])
+	matched := make([][16]byte, matchedCount)
+	copy(matched, images[:])
 
-	err = getNonMatchingImages(tag, &images, &buf)
+	err = getNonMatchingImages(tag, 9-matchedCount, &images, &buf)
 	if err != nil {
 		return
 	}
@@ -49,9 +46,9 @@ func GenerateCaptcha(tag string, src common.DataSource,
 	// This produces a sorted array of the correct answer indices.
 	// There might be a better way to do this.
 	j := 0
-	var solution [MatchingCount]byte
-	for i := 0; i < 9 && j < MatchingCount; i++ {
-		for k := 0; k < MatchingCount; k++ {
+	solution := make([]byte, matchedCount)
+	for i := 0; i < 9 && j < matchedCount; i++ {
+		for k := 0; k < matchedCount; k++ {
 			if matched[k] == images[i] {
 				solution[j] = byte(i)
 				j++
@@ -76,17 +73,19 @@ func GenerateCaptcha(tag string, src common.DataSource,
 
 func getMatchingImages(tag string, source common.DataSource,
 	images *[9][16]byte, buf *[]byte,
-) (err error) {
+) (n int, err error) {
+	n = common.RandomInt(2) + 2
 	q := sq.Select("hash").
 		From("image_tags").
 		Join("images on images.id = image_id").
 		Where("tag = ? and source = ? and blacklist = false", tag, source).
 		OrderBy("random()").
-		Limit(MatchingCount)
-	return scanHashes(q, 0, images, buf)
+		Limit(uint64(n))
+	err = scanHashes(q, 0, images, buf)
+	return
 }
 
-func getNonMatchingImages(tag string, images *[9][16]byte, buf *[]byte,
+func getNonMatchingImages(tag string, n int, images *[9][16]byte, buf *[]byte,
 ) (err error) {
 	q := sq.Select("hash").
 		From("images").
@@ -98,8 +97,8 @@ func getNonMatchingImages(tag string, images *[9][16]byte, buf *[]byte,
 			and blacklist = false`,
 			tag).
 		OrderBy("random()").
-		Limit(9 - MatchingCount)
-	return scanHashes(q, MatchingCount, images, buf)
+		Limit(uint64(n))
+	return scanHashes(q, 9-n, images, buf)
 }
 
 func scanHashes(q squirrel.SelectBuilder, i int, images *[9][16]byte,
@@ -133,18 +132,16 @@ func CheckSolution(id [64]byte, solution []byte) (solved bool, err error) {
 
 	err = InTransaction(func(tx *sql.Tx) (err error) {
 		var (
-			correct [MatchingCount]byte
-			buf     []byte
+			correct []byte
 		)
 		err = withTransaction(tx, sq.
 			Select("solution").
 			From("captchas").
 			Where("id = ? and status = 0", id[:])).
 			QueryRow().
-			Scan(&buf)
+			Scan(&correct)
 		switch err {
 		case nil:
-			copy(correct[:], buf)
 		case sql.ErrNoRows:
 			err = nil
 			return
@@ -169,7 +166,7 @@ func CheckSolution(id [64]byte, solution []byte) (solved bool, err error) {
 	return
 }
 
-func isSolved(correct [MatchingCount]byte, proposed []byte) bool {
+func isSolved(correct []byte, proposed []byte) bool {
 	solved := 0
 	for _, id := range proposed {
 		for _, c := range correct {
@@ -181,7 +178,7 @@ func isSolved(correct [MatchingCount]byte, proposed []byte) bool {
 		return false
 	next:
 	}
-	return solved >= MatchingCount-1
+	return solved >= len(correct)-1
 }
 
 // Get solution for captcha by ID
