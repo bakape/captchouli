@@ -33,7 +33,7 @@ func InTransaction(fn func(*sql.Tx) error) (err error) {
 }
 
 type rowScanner interface {
-	Scan(dest ...interface{}) error
+	Scan(dst ...interface{}) error
 }
 
 type tableScanner interface {

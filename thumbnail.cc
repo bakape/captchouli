@@ -1,6 +1,7 @@
 extern "C" {
 #include "thumbnail.h"
 }
+#include "distort.hh"
 #include <cstring>
 #include <functional>
 #include <iostream>
@@ -19,12 +20,18 @@ static const char* thumbnail(
     if (colour.empty()) {
         return no_faces;
     }
-    cv::Mat tmp1, tmp2;
-    cv::cvtColor(colour, tmp1, cv::COLOR_BGR2GRAY);
-    cv::equalizeHist(tmp1, tmp2);
+
+    // Always keep the resulting Mat in dst and swap before a new operation
+    cv::Mat src, dst;
+    auto swap = [&]() { cv::swap(src, dst); };
+
+    // Initial assignment does not need swap
+    cv::cvtColor(colour, dst, cv::COLOR_BGR2GRAY);
+    swap();
+    cv::equalizeHist(src, dst);
 
     std::vector<cv::Rect> faces;
-    c->detectMultiScale(tmp2, faces, 1.1, 5, 0, cv::Size(50, 50));
+    c->detectMultiScale(dst, faces, 1.1, 5, 0, cv::Size(50, 50));
     if (!faces.size()) {
         return no_faces;
     }
@@ -68,11 +75,14 @@ static const char* thumbnail(
         face.height += diff;
     }
 
-    cv::resize(cv::Mat(colour, face), tmp1, cv::Size(thumb_dim, thumb_dim), 0,
-        0, CV_INTER_LINEAR);
+    cv::resize(cv::Mat(colour, face), dst, cv::Size(thumb_dim, thumb_dim), 0, 0,
+        CV_INTER_LINEAR);
+    swap();
+    distort_mat(src, dst);
+
     std::vector<unsigned char> out;
-    static const std::vector<int> params = { CV_IMWRITE_JPEG_QUALITY, 90 };
-    if (!cv::imencode(".jpg", tmp1, out, params)) {
+    static const std::vector<int> params = { CV_IMWRITE_JPEG_QUALITY, 85 };
+    if (!cv::imencode(".jpg", dst, out, params)) {
         return "could not encode result";
     }
     const auto s = out.size();
