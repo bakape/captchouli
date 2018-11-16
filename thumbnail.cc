@@ -78,7 +78,7 @@ static const char* thumbnail(
     cv::resize(cv::Mat(colour, face), dst, cv::Size(thumb_dim, thumb_dim), 0, 0,
         CV_INTER_LINEAR);
     swap();
-    distort_mat(src, dst);
+    cpli_distort_mat(src, dst);
 
     std::vector<unsigned char> out;
     static const std::vector<int> params = { CV_IMWRITE_JPEG_QUALITY, 85 };
