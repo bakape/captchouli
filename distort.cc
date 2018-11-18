@@ -30,7 +30,7 @@ static void flip(cv::Mat& src, cv::Mat& dst, std::mt19937& rng)
 
 static void gaussian_blur(cv::Mat& src, cv::Mat& dst, std::mt19937& rng)
 {
-    cv::GaussianBlur(src, dst, cv::Size(), random_double(rng, 0.25, 0.75));
+    cv::GaussianBlur(src, dst, cv::Size(), random_double(rng, 0.25, 0.5));
 }
 
 static const std::array<Filter, 2> filters = { flip, gaussian_blur };
