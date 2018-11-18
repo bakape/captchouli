@@ -2,6 +2,7 @@ package captchouli
 
 import (
 	"compress/gzip"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"html"
@@ -235,7 +236,9 @@ func (s *Service) ServeCheckCaptcha(w http.ResponseWriter, r *http.Request,
 	err = CheckCaptcha(id, solution)
 	switch err {
 	case nil:
-		w.Write([]byte("OK"))
+		dst := make([]byte, base64.StdEncoding.EncodedLen(len(id)))
+		base64.StdEncoding.Encode(dst, id[:])
+		w.Write(dst)
 	case ErrInvalidSolution:
 		err = s.ServeNewCaptcha(w, r)
 	}
