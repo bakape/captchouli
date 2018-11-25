@@ -10,6 +10,9 @@
 		}
 		.captchouli-img {
 			margin: 2px;
+			-ms-user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
 			user-select: none;
 			max-width: calc((100% - 12px) / 3);
     		max-height: calc((100% - 12px) / 3);
