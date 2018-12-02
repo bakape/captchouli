@@ -39,10 +39,11 @@ func InsertImage(img Image) (err error) {
 	defer dbMu.Unlock()
 
 	return InTransaction(func(tx *sql.Tx) (err error) {
-		r, err := withTransaction(tx, sq.
+		r, err := sq.
 			Insert("images").
 			Columns("hash").
-			Values(img.MD5[:])).
+			Values(img.MD5[:]).
+			RunWith(tx).
 			Exec()
 		if err != nil {
 			return

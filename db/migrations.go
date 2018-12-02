@@ -74,9 +74,10 @@ func runMigrations(from, to int) (err error) {
 		}
 
 		// Write new version number
-		_, err = withTransaction(tx, sq.Update("main").
+		_, err = sq.Update("main").
 			Set("val", i+1).
-			Where("id = 'version'")).
+			Where("id = 'version'").
+			RunWith(tx).
 			Exec()
 		if err != nil {
 			return rollBack()

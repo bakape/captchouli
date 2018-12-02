@@ -134,10 +134,11 @@ func CheckSolution(id [64]byte, solution []byte) (solved bool, err error) {
 		var (
 			correct []byte
 		)
-		err = withTransaction(tx, sq.
+		err = sq.
 			Select("solution").
 			From("captchas").
-			Where("id = ? and status = 0", id[:])).
+			Where("id = ? and status = 0", id[:]).
+			RunWith(tx).
 			QueryRow().
 			Scan(&correct)
 		switch err {
@@ -156,10 +157,11 @@ func CheckSolution(id [64]byte, solution []byte) (solved bool, err error) {
 		} else {
 			status = 2
 		}
-		_, err = withTransaction(tx, sq.
+		_, err = sq.
 			Update("captchas").
 			Set("status", status).
-			Where("id = ?", id[:])).
+			Where("id = ?", id[:]).
+			RunWith(tx).
 			Exec()
 		return
 	})

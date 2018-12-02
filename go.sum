@@ -1,5 +1,7 @@
 github.com/Masterminds/squirrel v0.0.0-20181030160206-3ba160b0147f h1:8JBQSKzsc40IAP5tAKEq3mwtINgeJnzN9CmS5nn4wTM=
 github.com/Masterminds/squirrel v0.0.0-20181030160206-3ba160b0147f/go.mod h1:xnKTFzjGUiZtiOagBsfnvomW+nJg2usB1ZpordQWqNM=
+github.com/Masterminds/squirrel v0.0.0-20181126160726-407c0f9b9512 h1:2nyS7BEYZjIS3jD1UsnRYiOz1E/yNUACPYchgkUFWy0=
+github.com/Masterminds/squirrel v0.0.0-20181126160726-407c0f9b9512/go.mod h1:xnKTFzjGUiZtiOagBsfnvomW+nJg2usB1ZpordQWqNM=
 github.com/dimfeld/httptreemux v5.0.1+incompatible h1:Qj3gVcDNoOthBAqftuD596rm4wg/adLLz5xh5CmpiCA=
 github.com/dimfeld/httptreemux v5.0.1+incompatible/go.mod h1:rbUlSV+CCpv/SuqUTP/8Bk2O3LyUV436/yaRGkhP6Z0=
 github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 h1:SOEGU9fKiNWd/HOJuq6+3iTQz8KNCLtVX6idSoTLdUw=
@@ -14,3 +16,5 @@ github.com/valyala/quicktemplate v1.0.0 h1:lDPmM1AetDm736L5ZHGuVkMUA14+I0g3jbxWA
 github.com/valyala/quicktemplate v1.0.0/go.mod h1:uX8yrAzr955BRr+rAerWX4V1NHb8bFfsePffuN5lFso=
 golang.org/x/net v0.0.0-20181108082009-03003ca0c849 h1:FSqE2GGG7wzsYUsWiQ8MZrvEd1EOyU3NCF0AW3Wtltg=
 golang.org/x/net v0.0.0-20181108082009-03003ca0c849/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20181201002055-351d144fa1fc h1:a3CU5tJYVj92DY2LaA1kUkrsqD5/3mLDhx2NcNqyW+0=
+golang.org/x/net v0.0.0-20181201002055-351d144fa1fc/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
