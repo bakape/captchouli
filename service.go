@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"log"
 	"net/http"
@@ -163,9 +162,16 @@ func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 		colour = "black"
 	}
 
-	templates.WriteCaptcha(w, colour, background,
-		html.EscapeString(strings.Title(strings.Replace(tag, "_", " ", -1))),
-		id, images)
+	tagF := strings.Replace(tag, "_", " ", -1)
+	if len(tagF) != 0 {
+		// Don't title() tags of emoticons
+		switch tagF[0] {
+		case ';', ':', '=':
+		default:
+			tagF = strings.Title(tagF)
+		}
+	}
+	templates.WriteCaptcha(w, colour, background, tagF, id, images)
 
 	if !common.IsTest {
 		scheduleFetch <- common.FetchRequest{s.opts.AllowExplicit, tag,
