@@ -130,9 +130,11 @@ func (s *Service) initTag(tag string) (err error) {
 	var (
 		count int
 		first = true
+		f     = s.filters(tag)
+		req   = f.FetchRequest
 	)
 	for {
-		count, err = db.ImageCount(tag, s.opts.Source, s.opts.Explicitness)
+		count, err = db.ImageCount(f)
 		if err != nil {
 			return
 		}
@@ -144,17 +146,24 @@ func (s *Service) initTag(tag string) (err error) {
 				tag, s.opts.Explicitness)
 		}
 
-		err = fetch(s.newRequest(tag))
+		err = fetch(req)
 		if err != nil {
 			return
 		}
 	}
 }
 
-func (s *Service) newRequest(tag string) common.FetchRequest {
+func (s *Service) request(tag string) common.FetchRequest {
 	return common.FetchRequest{
 		Tag:    tag,
 		Source: s.opts.Source,
+	}
+}
+
+func (s *Service) filters(tag string) db.Filters {
+	return db.Filters{
+		FetchRequest: s.request(tag),
+		Explicitness: s.opts.Explicitness,
 	}
 }
 
@@ -165,8 +174,22 @@ func (s *Service) newRequest(tag string) common.FetchRequest {
 func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 ) (id [64]byte, err error) {
 	tag := s.opts.Tags[common.RandomInt(len(s.opts.Tags))]
+	f := s.filters(tag)
+	n, err := db.ImageCount(f)
+	if err != nil {
+		return
+	}
+	if n < 4 {
+		// Not enough to generate captcha. Schedule a fetch and try a different
+		// tag.
+		if !common.IsTest {
+			scheduleFetch <- f.FetchRequest
+		}
+		return s.NewCaptcha(w, colour, background)
+	}
+
 	id, images, err := db.GenerateCaptcha(db.Filters{
-		FetchRequest: s.newRequest(tag),
+		FetchRequest: s.request(tag),
 		Explicitness: s.opts.Explicitness,
 	})
 	if err != nil {
@@ -192,7 +215,7 @@ func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 	templates.WriteCaptcha(w, colour, background, tagF, id, images)
 
 	if !common.IsTest {
-		scheduleFetch <- s.newRequest(tag)
+		scheduleFetch <- f.FetchRequest
 	}
 	return
 }

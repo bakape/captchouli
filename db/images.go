@@ -85,9 +85,7 @@ func BlacklistImage(hash [16]byte) (err error) {
 }
 
 // Return count of images matching selectors
-func ImageCount(tag string, src common.DataSource,
-	explicitness []boorufetch.Rating,
-) (n int, err error) {
+func ImageCount(f Filters) (n int, err error) {
 	dbMu.RLock()
 	defer dbMu.RUnlock()
 
@@ -95,10 +93,10 @@ func ImageCount(tag string, src common.DataSource,
 		From("image_tags").
 		Join("images on image_id = images.id").
 		Where(squirrel.Eq{
-			"tag":       tag,
-			"source":    src,
+			"tag":       f.Tag,
+			"source":    f.Source,
 			"blacklist": false,
-			"rating":    explicitness,
+			"rating":    f.Explicitness,
 		}).
 		Scan(&n)
 	return
