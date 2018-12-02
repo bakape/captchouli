@@ -15,7 +15,7 @@ import (
 	"github.com/bakape/captchouli/common"
 	"github.com/bakape/captchouli/db"
 	"github.com/bakape/captchouli/templates"
-	"github.com/dimfeld/httptreemux"
+	"github.com/julienschmidt/httprouter"
 )
 
 var (
@@ -188,15 +188,19 @@ func CheckCaptcha(id [64]byte, solution []byte) error {
 
 // Creates a routed handler for serving the API.
 // The router implements http.Handler.
-func (s *Service) Router() *httptreemux.ContextMux {
-	r := httptreemux.NewContextMux()
-	r.GET("/", func(w http.ResponseWriter, r *http.Request) {
+func (s *Service) Router() *httprouter.Router {
+	r := httprouter.New()
+	r.HandlerFunc("GET", "/", func(w http.ResponseWriter, r *http.Request) {
 		handleError(w, s.ServeNewCaptcha(w, r))
 	})
-	r.POST("/", func(w http.ResponseWriter, r *http.Request) {
+	r.HandlerFunc("POST", "/", func(w http.ResponseWriter,
+		r *http.Request,
+	) {
 		handleError(w, s.ServeCheckCaptcha(w, r))
 	})
-	r.POST("/status", func(w http.ResponseWriter, r *http.Request) {
+	r.HandlerFunc("POST", "/status", func(w http.ResponseWriter,
+		r *http.Request,
+	) {
 		handleError(w, ServeStatus(w, r))
 	})
 	return r
