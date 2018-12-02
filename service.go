@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bakape/boorufetch"
 	"github.com/bakape/captchouli/common"
 	"github.com/bakape/captchouli/db"
 	"github.com/bakape/captchouli/templates"
@@ -51,18 +52,25 @@ const (
 	poolMinSize = 6
 )
 
+// Explicitness rating of image
+type Rating = boorufetch.Rating
+
+const (
+	Safe Rating = iota
+	Questionable
+	Explicit
+)
+
 // Options passed on Service creation
 type Options struct {
-	// Allow images with explicit content. Note that this only applies to
-	// fetching new images for the pool. Once your pool has any explicit images,
-	// they will be selected for captchas like any other image.
-	AllowExplicit bool
-
 	// Silence non-error log outputs
 	Quiet bool
 
 	// Source of image database to use for captcha image generation
 	Source DataSource
+
+	// Allow images with varying explicitness. Defaults to only Safe.
+	Explicitness []Rating
 
 	// Tags to source for captcha solutions. One tag is randomly chosen for each
 	// generated captcha. Required to contain at least 1 tag but the database
@@ -87,6 +95,9 @@ func NewService(opts Options) (s *Service, err error) {
 	}
 
 	s = &Service{opts}
+	if len(s.opts.Explicitness) == 0 {
+		s.opts.Explicitness = []Rating{Safe}
+	}
 
 	err = initClassifier(opts.Source)
 	if err != nil {
@@ -121,7 +132,7 @@ func (s *Service) initTag(tag string) (err error) {
 		first = true
 	)
 	for {
-		count, err = db.ImageCount(tag, s.opts.Source)
+		count, err = db.ImageCount(tag, s.opts.Source, s.opts.Explicitness)
 		if err != nil {
 			return
 		}
@@ -129,17 +140,21 @@ func (s *Service) initTag(tag string) (err error) {
 			return
 		} else if first {
 			first = false
-			log.Printf("captchouli: initializing image pool for tag `%s`\n",
-				tag)
+			log.Printf("captchouli: initializing tag=%s explicitness=%v\n",
+				tag, s.opts.Explicitness)
 		}
 
-		err = fetch(common.FetchRequest{
-			Tag:    tag,
-			Source: s.opts.Source,
-		})
+		err = fetch(s.newRequest(tag))
 		if err != nil {
 			return
 		}
+	}
+}
+
+func (s *Service) newRequest(tag string) common.FetchRequest {
+	return common.FetchRequest{
+		Tag:    tag,
+		Source: s.opts.Source,
 	}
 }
 
@@ -150,7 +165,10 @@ func (s *Service) initTag(tag string) (err error) {
 func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 ) (id [64]byte, err error) {
 	tag := s.opts.Tags[common.RandomInt(len(s.opts.Tags))]
-	id, images, err := db.GenerateCaptcha(tag, s.opts.Source)
+	id, images, err := db.GenerateCaptcha(db.Filters{
+		FetchRequest: s.newRequest(tag),
+		Explicitness: s.opts.Explicitness,
+	})
 	if err != nil {
 		return
 	}
@@ -174,8 +192,7 @@ func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 	templates.WriteCaptcha(w, colour, background, tagF, id, images)
 
 	if !common.IsTest {
-		scheduleFetch <- common.FetchRequest{s.opts.AllowExplicit, tag,
-			s.opts.Source}
+		scheduleFetch <- s.newRequest(tag)
 	}
 	return
 }

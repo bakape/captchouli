@@ -6,6 +6,8 @@ import (
 	"encoding/binary"
 	"math/rand"
 
+	"github.com/bakape/boorufetch"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/bakape/captchouli/common"
 )
@@ -23,18 +25,23 @@ func (cryptoSource) Int63() int64 {
 
 func (cryptoSource) Seed(_ int64) {}
 
+// Filters for querying an image for a captcha
+type Filters struct {
+	common.FetchRequest
+	Explicitness []boorufetch.Rating
+}
+
 // Generate a new captcha and return its ID and image list in order
-func GenerateCaptcha(tag string, src common.DataSource,
-) (id [64]byte, images [9][16]byte, err error) {
+func GenerateCaptcha(f Filters) (id [64]byte, images [9][16]byte, err error) {
 	buf := make([]byte, 16)
-	matchedCount, err := getMatchingImages(tag, src, &images, &buf)
+	matchedCount, err := getMatchingImages(f, &images, &buf)
 	if err != nil {
 		return
 	}
 	matched := make([][16]byte, matchedCount)
 	copy(matched, images[:])
 
-	err = getNonMatchingImages(tag, 9-matchedCount, &images, &buf)
+	err = getNonMatchingImages(f, 9-matchedCount, &images, &buf)
 	if err != nil {
 		return
 	}
@@ -71,21 +78,25 @@ func GenerateCaptcha(tag string, src common.DataSource,
 	return
 }
 
-func getMatchingImages(tag string, source common.DataSource,
-	images *[9][16]byte, buf *[]byte,
+func getMatchingImages(f Filters, images *[9][16]byte, buf *[]byte,
 ) (n int, err error) {
 	n = common.RandomInt(2) + 2
 	q := sq.Select("hash").
 		From("image_tags").
 		Join("images on images.id = image_id").
-		Where("tag = ? and source = ? and blacklist = false", tag, source).
+		Where(squirrel.Eq{
+			"tag":       f.Tag,
+			"source":    f.Source,
+			"blacklist": false,
+			"rating":    f.Explicitness,
+		}).
 		OrderBy("random()").
 		Limit(uint64(n))
 	err = scanHashes(q, 0, images, buf)
 	return
 }
 
-func getNonMatchingImages(tag string, n int, images *[9][16]byte, buf *[]byte,
+func getNonMatchingImages(f Filters, n int, images *[9][16]byte, buf *[]byte,
 ) (err error) {
 	q := sq.Select("hash").
 		From("images").
@@ -93,9 +104,12 @@ func getNonMatchingImages(tag string, n int, images *[9][16]byte, buf *[]byte,
 			`not exists (
 				select 1
 				from image_tags
-				where image_id = images.id and tag = ?)
-			and blacklist = false`,
-			tag).
+				where image_id = images.id and tag = ?)`,
+			f.Tag).
+		Where(squirrel.Eq{
+			"blacklist": false,
+			"rating":    f.Explicitness,
+		}).
 		OrderBy("random()").
 		Limit(uint64(n))
 	return scanHashes(q, 9-n, images, buf)

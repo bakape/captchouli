@@ -1,7 +1,6 @@
 package gelbooru
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -22,16 +21,32 @@ func TestFetch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(f.Name())
-	defer f.Close()
+	if f != nil {
+		defer os.Remove(f.Name())
+		defer f.Close()
+	}
+}
 
-	_, err = f.Seek(0, 0)
+func TestNoMatch(t *testing.T) {
+	_, _, err := Fetch(common.FetchRequest{
+		Tag:    "sakura_kyouko_dsadsdadsadsad",
+		Source: common.Gelbooru,
+	})
+	if err != common.ErrNoMatch {
+		t.Fatal(err)
+	}
+}
+
+func TestOnlyOnePage(t *testing.T) {
+	f, _, err := Fetch(common.FetchRequest{
+		Tag:    "=>",
+		Source: common.Gelbooru,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	buf, err := ioutil.ReadAll(f)
-	if err != nil {
-		t.Fatal(err)
+	if f != nil {
+		defer os.Remove(f.Name())
+		defer f.Close()
 	}
-	common.WriteSample(t, "fetched", buf)
 }

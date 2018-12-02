@@ -1,90 +1,31 @@
 package gelbooru
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/bakape/boorufetch"
 	"github.com/bakape/captchouli/common"
 	"github.com/bakape/captchouli/db"
 )
 
 var (
-	cache = make(map[string]cacheEntry)
+	cache = make(map[string]*cacheEntry)
 	mu    sync.Mutex
 )
 
 type cacheEntry struct {
-	pages     map[int][]image
-	pageCount int
+	pages    map[int][]image
+	maxPages int // Estimate for maximum number of pages
 }
 
 type image struct {
 	db.Image
 	url string
-}
-
-type decoder struct {
-	Sample          bool
-	Directory, Hash string
-	FileURL         string `json:"file_url"`
-	Tags            string
-}
-
-// Ensure original tag is present and reuse map for deduplication
-func (d *decoder) toImage(tag string, tmp map[string]struct{},
-) (img image, err error) {
-	// Dedup tags just in case. Boorus can't be trusted too much.
-	split := strings.Split(d.Tags, " ")
-	for k := range tmp {
-		delete(tmp, k)
-	}
-	for _, t := range split {
-		tmp[t] = struct{}{}
-	}
-	tmp[tag] = struct{}{} // Ensure map contains initial tag
-
-	img.Tags = make([]string, 0, len(tmp))
-	for k := range tmp {
-		img.Tags = append(img.Tags, k)
-	}
-
-	img.MD5, err = common.DecodeMD5(d.Hash)
-	if err != nil {
-		return
-	}
-
-	if d.Sample {
-		img.url = fmt.Sprintf(
-			"https://simg3.gelbooru.com/samples/%s/sample_%s.jpg",
-			d.Directory, d.Hash)
-	} else {
-		img.url = d.FileURL
-	}
-
-	return
-}
-
-// Returns, if image is a valid target for fetching. Avoids downloading WebMs
-// and GIFs.
-func (d *decoder) isValid() bool {
-	if d.Sample {
-		return true
-	}
-	for _, s := range [...]string{"jpg", "jpeg", "png"} {
-		if strings.HasSuffix(d.FileURL, s) {
-			return true
-		}
-	}
-	return false
 }
 
 // Fetch random matching file from Gelbooru.
@@ -94,20 +35,11 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	var w bytes.Buffer
-	w.WriteString(
-		"solo -photo -monochrome -multiple_girls -couple -multiple_boys -cosplay -objectification ")
-	if !req.AllowExplicit {
-		w.WriteString("rating:safe ")
-	}
-	w.WriteString(req.Tag)
-	tags := w.String()
+	tags :=
+		"solo -photo -monochrome -multiple_girls -couple -multiple_boys -cosplay -objectification " +
+			req.Tag
 
-	pages, err := pageCount(req.Tag, tags)
-	if err != nil || pages == 0 {
-		return
-	}
-	images, err := fetchPage(req.Tag, tags, common.RandomInt(pages))
+	images, err := fetchPage(req.Tag, tags)
 	if err != nil || len(images) == 0 {
 		return
 	}
@@ -138,99 +70,117 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	return
 }
 
-func pageCount(requested, tags string) (count int, err error) {
-	entry, ok := cache[tags]
-	if ok {
-		count = entry.pageCount
+// Fetch a random page from gelbooru or cache
+func fetchPage(requested, tags string) (images []image, err error) {
+	store := cache[tags]
+	if store == nil {
+		maxPages := 200
+		if common.IsTest { // Reduce test duration
+			maxPages = 2
+		}
+		store = &cacheEntry{
+			pages:    make(map[int][]image),
+			maxPages: maxPages,
+		}
+		cache[tags] = store
+	}
+	if store.maxPages == 0 {
+		err = common.ErrNoMatch
 		return
 	}
-	entry.pages = make(map[int][]image, 16)
-	cache[tags] = entry
 
+	// Always dowload first page on fresh fetch
+	var page int
+	if len(store.pages) == 0 {
+		page = common.RandomInt(store.maxPages)
+	} else {
+		page = 1
+	}
+
+	images, ok := store.pages[page]
+	if ok { // Cache hit
+		return
+	}
+
+	limit := uint(100)
+	if common.IsTest { // Reduce test duration
+		limit = 5
+	}
+	posts, err := boorufetch.FromGelbooru(tags, uint(page), limit)
+	switch {
+	case err == nil:
+	case err == io.EOF || len(posts) == 0:
+		if page == 1 {
+			err = common.ErrNoMatch
+			store.maxPages = 0 // Mark as invalid
+			return
+		}
+		// Empty page. Don't check pages past this one. They will also be empty.
+		store.maxPages = page
+		// Retry with a new random page
+		return fetchPage(requested, tags)
+	default:
+		return
+	}
+
+	images = make([]image, 0, len(posts))
 	var (
-		page   = 0
-		exists = true
-		images []image
+		valid bool
+		img   = image{
+			Image: db.Image{
+				Source: common.Gelbooru,
+			},
+		}
+		dedup = make(map[string]struct{}, 128)
 	)
-	for exists { // First find first empty page in increments of 5
-		images, err = fetchPage(requested, tags, page)
+	for _, p := range posts {
+		for k := range dedup {
+			delete(dedup, k)
+		}
+		hasChar := false
+		for _, t := range p.Tags() {
+			// Allow only images with 1 character in them
+			if t.Type == boorufetch.Character {
+				if hasChar {
+					goto skip
+				}
+				hasChar = true
+			}
+			// Dedup tags just in case. Boorus can't be trusted too much.
+			dedup[t.Tag] = struct{}{}
+		}
+		dedup[requested] = struct{}{} // Ensure map contains initial tag
+
+		// File must be a still image
+		valid = false
+		img.url = p.FileURL()
+		if img.url == "" {
+			goto skip
+		}
+		for _, s := range [...]string{"jpg", "jpeg", "png"} {
+			if strings.HasSuffix(img.url, s) {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			goto skip
+		}
+
+		img.MD5, err = p.MD5()
 		if err != nil {
 			return
 		}
-		exists = len(images) != 0
-		if page == 0 && !exists { // These tags have only empty pages
-			storePageCount(tags, 0)
-			return
+		img.Rating = p.Rating()
+		img.Tags = make([]string, 0, len(dedup))
+		for t := range dedup {
+			img.Tags = append(img.Tags, t)
 		}
-		page += 5
 
-		// Need a limit or we will hit the gelbooru page limit
-		if page >= 200 {
-			break
-		}
-	}
-	for !exists { // Then find last non-empty page
-		page--
-		images, err = fetchPage(requested, tags, page)
-		if err != nil {
-			return
-		}
-		exists = len(images) != 0
+		images = append(images, img)
+	skip:
 	}
 
-	count = page + 1
-	storePageCount(tags, count)
-	return
-}
-
-func storePageCount(tags string, count int) {
-	entry := cache[tags]
-	entry.pageCount = count
-	cache[tags] = entry
-}
-
-func fetchPage(requested, tags string, page int) (images []image, err error) {
-	images, ok := cache[tags].pages[page]
-	if ok {
-		return
-	}
-
-	u := url.URL{
-		Scheme: "https",
-		Host:   "gelbooru.com",
-		Path:   "/index.php",
-		RawQuery: url.Values{
-			"page":  {"dapi"},
-			"s":     {"post"},
-			"q":     {"index"},
-			"json":  {"1"},
-			"tags":  {tags},
-			"limit": {"100"},
-			"pid":   {strconv.Itoa(page)},
-		}.Encode(),
-	}
-	r, err := http.Get(u.String())
-	if err != nil {
-		return
-	}
-	defer r.Body.Close()
-
-	var dec []decoder
-	err = json.NewDecoder(r.Body).Decode(&dec)
-	if err != nil || len(dec) == 0 {
-		return
-	}
-	images = make([]image, len(dec))
-	tmp := make(map[string]struct{}, 128)
-	for i, d := range dec {
-		if !d.isValid() {
-			continue
-		}
-		images[i], err = d.toImage(requested, tmp)
-		if err != nil {
-			return
-		}
-	}
 	cache[tags].pages[page] = images
 	return
 }

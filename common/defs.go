@@ -1,5 +1,9 @@
 package common
 
+import (
+	"errors"
+)
+
 // Source of image database to use for captcha image generation
 type DataSource uint8
 
@@ -14,14 +18,17 @@ const (
 	BackgroundKey = "captchouli-background"
 )
 
+var (
+	ErrNoMatch = Error{errors.New("no images match tag")}
+)
+
 func (d DataSource) String() string {
 	return "gelbooru"
 }
 
 type FetchRequest struct {
-	AllowExplicit bool
-	Tag           string
-	Source        DataSource
+	Source DataSource
+	Tag    string
 }
 
 // Generic error with prefix string

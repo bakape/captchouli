@@ -4,10 +4,12 @@ import (
 	"database/sql"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/bakape/boorufetch"
 	"github.com/bakape/captchouli/common"
 )
 
 type Image struct {
+	Rating boorufetch.Rating
 	Source common.DataSource
 	MD5    [16]byte
 	Tags   []string
@@ -41,8 +43,8 @@ func InsertImage(img Image) (err error) {
 	return InTransaction(func(tx *sql.Tx) (err error) {
 		r, err := sq.
 			Insert("images").
-			Columns("hash").
-			Values(img.MD5[:]).
+			Columns("hash", "rating").
+			Values(img.MD5[:], img.Rating).
 			RunWith(tx).
 			Exec()
 		if err != nil {
@@ -83,7 +85,9 @@ func BlacklistImage(hash [16]byte) (err error) {
 }
 
 // Return count of images matching selectors
-func ImageCount(tag string, src common.DataSource) (n int, err error) {
+func ImageCount(tag string, src common.DataSource,
+	explicitness []boorufetch.Rating,
+) (n int, err error) {
 	dbMu.RLock()
 	defer dbMu.RUnlock()
 
@@ -94,6 +98,7 @@ func ImageCount(tag string, src common.DataSource) (n int, err error) {
 			"tag":       tag,
 			"source":    src,
 			"blacklist": false,
+			"rating":    explicitness,
 		}).
 		Scan(&n)
 	return

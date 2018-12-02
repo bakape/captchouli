@@ -48,6 +48,14 @@ var migrations = []func(*sql.Tx) error{
 			createIndex("captchas", "status", false),
 		)
 	},
+	func(tx *sql.Tx) (err error) {
+		return execAll(tx,
+			`delete from images`,
+			`delete from image_tags`,
+			`alter table images add column rating integer not null default 1`,
+			createIndex("images", "rating", false),
+		)
+	},
 }
 
 // Run migrations from version `from`to version `to`
