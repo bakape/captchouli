@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/test_utils"
 )
 
 func TestThumbnailing(t *testing.T) {
@@ -30,7 +31,7 @@ func TestThumbnailing(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			common.WriteSample(t, fmt.Sprintf("sample_%s_thumb.jpg", c.ext),
+			test_utils.WriteSample(t, fmt.Sprintf("sample_%s_thumb.jpg", c.ext),
 				thumb)
 		})
 	}

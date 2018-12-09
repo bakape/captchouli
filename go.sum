@@ -2,8 +2,12 @@ github.com/Masterminds/squirrel v0.0.0-20181030160206-3ba160b0147f h1:8JBQSKzsc4
 github.com/Masterminds/squirrel v0.0.0-20181030160206-3ba160b0147f/go.mod h1:xnKTFzjGUiZtiOagBsfnvomW+nJg2usB1ZpordQWqNM=
 github.com/Masterminds/squirrel v0.0.0-20181126160726-407c0f9b9512 h1:2nyS7BEYZjIS3jD1UsnRYiOz1E/yNUACPYchgkUFWy0=
 github.com/Masterminds/squirrel v0.0.0-20181126160726-407c0f9b9512/go.mod h1:xnKTFzjGUiZtiOagBsfnvomW+nJg2usB1ZpordQWqNM=
+github.com/Masterminds/squirrel v0.0.0-20181204161840-e5bf00f96d4a h1:pMmt05odIWMlrx89uWavde2DDX8SXzaYnbGW+knFeU0=
+github.com/Masterminds/squirrel v0.0.0-20181204161840-e5bf00f96d4a/go.mod h1:xnKTFzjGUiZtiOagBsfnvomW+nJg2usB1ZpordQWqNM=
 github.com/bakape/boorufetch v0.0.0-20181202192329-4e9f999d98ed h1:wH6FmeLtKtKIULVlpNz7xMf/giDSPSa0diD7S9zP/VI=
 github.com/bakape/boorufetch v0.0.0-20181202192329-4e9f999d98ed/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
+github.com/bakape/boorufetch v0.0.0-20181209175127-a461c8aa4884 h1:osPsMSLF5KD9+IWUMv9+YpO+AwjqFDL7CljMHy/Dua8=
+github.com/bakape/boorufetch v0.0.0-20181209175127-a461c8aa4884/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
 github.com/dimfeld/httptreemux v5.0.1+incompatible h1:Qj3gVcDNoOthBAqftuD596rm4wg/adLLz5xh5CmpiCA=
 github.com/dimfeld/httptreemux v5.0.1+incompatible/go.mod h1:rbUlSV+CCpv/SuqUTP/8Bk2O3LyUV436/yaRGkhP6Z0=
 github.com/julienschmidt/httprouter v1.2.0 h1:TDTW5Yz1mjftljbcKqRcrYhd4XeOoI98t+9HbQbYf7g=
@@ -22,3 +26,5 @@ golang.org/x/net v0.0.0-20181108082009-03003ca0c849 h1:FSqE2GGG7wzsYUsWiQ8MZrvEd
 golang.org/x/net v0.0.0-20181108082009-03003ca0c849/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20181201002055-351d144fa1fc h1:a3CU5tJYVj92DY2LaA1kUkrsqD5/3mLDhx2NcNqyW+0=
 golang.org/x/net v0.0.0-20181201002055-351d144fa1fc/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20181207154023-610586996380 h1:zPQexyRtNYBc7bcHmehl1dH6TB3qn8zytv8cBGLDNY0=
+golang.org/x/net v0.0.0-20181207154023-610586996380/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=

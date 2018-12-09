@@ -1,18 +1,31 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/bakape/captchouli"
 )
 
 var defaultTags = [...]string{
-	"patchouli_knowledge", "cirno", "hakurei_reimu", "kirisame_marisa",
-	"konpaku_youmu", "kaname_madoka", "sakura_kyouko", "akemi_homura", ":>",
+	"patchouli_knowledge", "patchouli_knowledge", "hakurei_reimu", "kirisame_marisa",
+	"konpaku_youmu", ":>",
 }
 
 func main() {
+	address := flag.String("a", ":8512", "address for server to listen on")
+	explicit := flag.Bool("e", false,
+		"allow explicit rating images in the pool")
+	tags := flag.String("t", strings.Join(defaultTags[:], ","),
+		`Comma-separated list of tags to use in the pool. At least 3 required
+Note that only tags that are detectable from the characters face should e used.
+`)
+
+	flag.Parse()
+
 	var s *captchouli.Service
 	err := func() (err error) {
 		err = captchouli.Open()
@@ -20,9 +33,19 @@ func main() {
 			return
 		}
 
-		s, err = captchouli.NewService(captchouli.Options{
-			Tags: defaultTags[:],
-		})
+		tags := strings.Split(*tags, ",")
+		if len(tags) < 3 {
+			return fmt.Errorf("not enough tags provided")
+		}
+		opts := captchouli.Options{
+			Tags: tags,
+		}
+		if *explicit {
+			opts.Explicitness = []captchouli.Rating{captchouli.Safe,
+				captchouli.Questionable, captchouli.Explicit}
+		}
+
+		s, err = captchouli.NewService(opts)
 		return
 	}()
 	if err != nil {
@@ -30,5 +53,6 @@ func main() {
 	}
 	defer captchouli.Close()
 
-	log.Println(http.ListenAndServe(":8003", s.Router()))
+	log.Println("listening on " + *address)
+	log.Println(http.ListenAndServe(*address, s.Router()))
 }
