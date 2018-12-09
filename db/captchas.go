@@ -3,7 +3,6 @@ package db
 import (
 	crypto "crypto/rand"
 	"database/sql"
-	"encoding/binary"
 	"math/rand"
 
 	"github.com/bakape/boorufetch"
@@ -11,19 +10,6 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/bakape/captchouli/common"
 )
-
-var _cryptoSource = cryptoSource{}
-
-type cryptoSource struct{}
-
-func (cryptoSource) Int63() int64 {
-	var b [8]byte
-	crypto.Read(b[:])
-	// Mask off sign bit to ensure positive number
-	return int64(binary.LittleEndian.Uint64(b[:]) & (1<<63 - 1))
-}
-
-func (cryptoSource) Seed(_ int64) {}
 
 // Filters for querying an image for a captcha
 type Filters struct {
@@ -46,7 +32,7 @@ func GenerateCaptcha(f Filters) (id [64]byte, images [9][16]byte, err error) {
 		return
 	}
 
-	rand.New(&_cryptoSource).Shuffle(9, func(i, j int) {
+	rand.New(common.CryptoSource).Shuffle(9, func(i, j int) {
 		images[i], images[j] = images[j], images[i]
 	})
 

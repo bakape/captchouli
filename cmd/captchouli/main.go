@@ -11,7 +11,7 @@ import (
 )
 
 var defaultTags = [...]string{
-	"patchouli_knowledge", "patchouli_knowledge", "hakurei_reimu", "kirisame_marisa",
+	"patchouli_knowledge", "hakurei_reimu", "cirno", "kirisame_marisa",
 	"konpaku_youmu", ":>",
 }
 

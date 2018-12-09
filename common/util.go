@@ -2,6 +2,7 @@ package common
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -39,3 +40,17 @@ func DecodeMD5(s string) (buf [16]byte, err error) {
 func ThumbPath(md5 [16]byte) string {
 	return filepath.Join(RootDir, "images", hex.EncodeToString(md5[:]))
 }
+
+// Source of cryptographically secure integers
+var CryptoSource mRand.Source = new(cryptoSource)
+
+type cryptoSource struct{}
+
+func (cryptoSource) Int63() int64 {
+	var b [8]byte
+	rand.Read(b[:])
+	// Mask off sign bit to ensure positive number
+	return int64(binary.LittleEndian.Uint64(b[:]) & (1<<63 - 1))
+}
+
+func (cryptoSource) Seed(_ int64) {}

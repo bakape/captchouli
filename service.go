@@ -1,6 +1,7 @@
 package captchouli
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/base64"
 	"errors"
@@ -84,7 +85,8 @@ type Options struct {
 
 // Encapsulates a configured captcha-generation and verification service
 type Service struct {
-	opts Options
+	opts            Options
+	explicitnessStr string
 }
 
 // Create new captcha-generation and verification service
@@ -94,7 +96,9 @@ func NewService(opts Options) (s *Service, err error) {
 		return
 	}
 
-	s = &Service{opts}
+	s = &Service{
+		opts: opts,
+	}
 	if len(s.opts.Explicitness) == 0 {
 		s.opts.Explicitness = []Rating{Safe}
 	}
@@ -126,6 +130,24 @@ func (s *Service) initPool() {
 	s.opts.Tags = completed
 }
 
+func (s *Service) formatExplicitness() string {
+	if s.explicitnessStr != "" {
+		return s.explicitnessStr
+	}
+
+	var w bytes.Buffer
+	w.WriteByte('[')
+	for i, r := range s.opts.Explicitness {
+		if i != 0 {
+			w.WriteString(", ")
+		}
+		w.WriteString(r.String())
+	}
+	w.WriteByte(']')
+	s.explicitnessStr = w.String()
+	return s.explicitnessStr
+}
+
 func (s *Service) initTag(tag string) (err error) {
 	var (
 		count int
@@ -142,8 +164,8 @@ func (s *Service) initTag(tag string) (err error) {
 			return
 		} else if first {
 			first = false
-			log.Printf("captchouli: initializing tag=%s explicitness=%v\n",
-				tag, s.opts.Explicitness)
+			log.Printf("captchouli: initializing tag=%s explicitness=%s\n",
+				tag, s.formatExplicitness())
 		}
 
 		err = fetch(req)

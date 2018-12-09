@@ -55,10 +55,7 @@ func fetch(req common.FetchRequest) (err error) {
 		fn = gelbooru.Fetch
 	}
 	f, img, err := fn(req)
-	if f == nil {
-		return
-	}
-	if err != nil {
+	if f == nil || err != nil {
 		return
 	}
 	defer os.Remove(f.Name())

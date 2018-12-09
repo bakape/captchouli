@@ -8,6 +8,10 @@ github.com/bakape/boorufetch v0.0.0-20181202192329-4e9f999d98ed h1:wH6FmeLtKtKIU
 github.com/bakape/boorufetch v0.0.0-20181202192329-4e9f999d98ed/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
 github.com/bakape/boorufetch v0.0.0-20181209175127-a461c8aa4884 h1:osPsMSLF5KD9+IWUMv9+YpO+AwjqFDL7CljMHy/Dua8=
 github.com/bakape/boorufetch v0.0.0-20181209175127-a461c8aa4884/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
+github.com/bakape/boorufetch v0.0.0-20181209201503-5dde6e1230ce h1:47NRnbT9y6k99B+QMJIie63yH7XMYH1QCn5k1Fj4GCA=
+github.com/bakape/boorufetch v0.0.0-20181209201503-5dde6e1230ce/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
+github.com/bakape/boorufetch v0.0.0-20181209210153-6c31ebec05de h1:oT+b01ri0qol5VZasjpxNddOAqqieykHCDHErLr98tY=
+github.com/bakape/boorufetch v0.0.0-20181209210153-6c31ebec05de/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
 github.com/dimfeld/httptreemux v5.0.1+incompatible h1:Qj3gVcDNoOthBAqftuD596rm4wg/adLLz5xh5CmpiCA=
 github.com/dimfeld/httptreemux v5.0.1+incompatible/go.mod h1:rbUlSV+CCpv/SuqUTP/8Bk2O3LyUV436/yaRGkhP6Z0=
 github.com/julienschmidt/httprouter v1.2.0 h1:TDTW5Yz1mjftljbcKqRcrYhd4XeOoI98t+9HbQbYf7g=
