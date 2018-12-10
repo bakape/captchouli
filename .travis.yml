@@ -1,7 +1,11 @@
-services: docker
-script:
-  - docker build -t tests .
-  - docker run tests go test -v ./...
+language: go
+dist: xenial
+before_install:
+  - sudo apt-get install -y libopencv-dev
+addons:
+  apt:
+    update: true
+script: go test -v --race ./...
 notifications:
   email:
     recipients:
