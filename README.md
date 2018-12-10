@@ -6,7 +6,7 @@ booru-backed procedurally-generated anime image captcha library and server
 
 ![sample](https://github.com/bakape/captchouli/raw/master/assets/sample.png)
 
-Captchouli scrape boorus for admin-defined tags and captchas for user anti-bot authentication. 
+Captchouli scrape boorus for admin-defined tags and generates and verifies captchas for user anti-bot authentication. 
 
 ## Installation
 
