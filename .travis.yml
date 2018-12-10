@@ -1,7 +1,7 @@
 services: docker
 script:
   - docker build -t tests .
-  - docker run tests go test --race -v ./...
+  - docker run tests go test -v ./...
 notifications:
   email:
     recipients:
