@@ -20,8 +20,8 @@ func main() {
 	explicit := flag.Bool("e", false,
 		"allow explicit rating images in the pool")
 	tags := flag.String("t", strings.Join(defaultTags[:], ","),
-		`Comma-separated list of tags to use in the pool. At least 3 required
-Note that only tags that are detectable from the characters face should e used.
+		`Comma-separated list of tags to use in the pool. At least 3 required.
+Note that only tags that are detectable from the character's face should be used.
 `)
 
 	flag.Parse()
