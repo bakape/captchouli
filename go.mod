@@ -2,7 +2,7 @@ module github.com/bakape/captchouli
 
 require (
 	github.com/Masterminds/squirrel v0.0.0-20181204161840-e5bf00f96d4a
-	github.com/bakape/boorufetch v0.0.0-20181213235927-19fd09a74a15
+	github.com/bakape/boorufetch v0.0.0-20181214005807-2007c923fd1c
 	github.com/dimfeld/httptreemux v5.0.1+incompatible
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect

@@ -230,7 +230,6 @@ func fetchPage(requested, tags string) (res resultPage, err error) {
 	if err != nil {
 		return
 	}
-	println(tags)
 	if len(posts) == 0 {
 		if page == 0 {
 			err = common.ErrNoMatch

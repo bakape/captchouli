@@ -14,6 +14,8 @@ github.com/bakape/boorufetch v0.0.0-20181209210153-6c31ebec05de h1:oT+b01ri0qol5
 github.com/bakape/boorufetch v0.0.0-20181209210153-6c31ebec05de/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
 github.com/bakape/boorufetch v0.0.0-20181213235927-19fd09a74a15 h1:owdC/nHBeFBBe6thGlOCwoiqduE/BhPydhqTuiDc0F4=
 github.com/bakape/boorufetch v0.0.0-20181213235927-19fd09a74a15/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
+github.com/bakape/boorufetch v0.0.0-20181214005807-2007c923fd1c h1:TYroveHykv4Lnfg9KBKPHhqIlTqqk0CjPagjZRvz8dE=
+github.com/bakape/boorufetch v0.0.0-20181214005807-2007c923fd1c/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
 github.com/dimfeld/httptreemux v5.0.1+incompatible h1:Qj3gVcDNoOthBAqftuD596rm4wg/adLLz5xh5CmpiCA=
 github.com/dimfeld/httptreemux v5.0.1+incompatible/go.mod h1:rbUlSV+CCpv/SuqUTP/8Bk2O3LyUV436/yaRGkhP6Z0=
 github.com/julienschmidt/httprouter v1.2.0 h1:TDTW5Yz1mjftljbcKqRcrYhd4XeOoI98t+9HbQbYf7g=
