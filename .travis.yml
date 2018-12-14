@@ -5,9 +5,3 @@ before_install:
 addons:
   apt:
     update: true
-notifications:
-  email:
-    recipients:
-      - scorpid33@gmail.com
-    on_success: never
-    on_failure: always

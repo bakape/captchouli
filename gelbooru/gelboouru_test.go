@@ -69,5 +69,5 @@ func TestNoMatch(t *testing.T) {
 }
 
 func TestOnlyOnePage(t *testing.T) {
-	testFetches(t, "=>")
+	testFetches(t, "symphogear")
 }

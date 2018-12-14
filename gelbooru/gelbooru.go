@@ -218,7 +218,7 @@ func fetchPage(requested, tags string) (res resultPage, err error) {
 	if len(store.pages) != 0 {
 		page = common.RandomInt(store.maxPages)
 	} else {
-		page = 1
+		page = 0
 	}
 
 	res, ok := store.pages[page]
@@ -227,10 +227,12 @@ func fetchPage(requested, tags string) (res resultPage, err error) {
 	}
 
 	posts, err := boorufetch.FromGelbooru(tags, uint(page), 100)
-	switch {
-	case err == nil:
-	case err == io.EOF || len(posts) == 0:
-		if page == 1 {
+	if err != nil {
+		return
+	}
+	println(tags)
+	if len(posts) == 0 {
+		if page == 0 {
 			err = common.ErrNoMatch
 			store.maxPages = 0 // Mark as invalid
 			return
@@ -239,8 +241,6 @@ func fetchPage(requested, tags string) (res resultPage, err error) {
 		store.maxPages = page
 		// Retry with a new random page
 		return fetchPage(requested, tags)
-	default:
-		return
 	}
 
 	// Shuffle posts and push them to the stack
