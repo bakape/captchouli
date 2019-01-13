@@ -14,8 +14,7 @@ func TestMain(t *testing.M) {
 
 func newService(t *testing.T) *Service {
 	s, err := NewService(Options{
-		Tags:  []string{"patchouli_knowledge", "cirno", "hakurei_reimu"},
-		Quiet: true,
+		Tags: []string{"patchouli_knowledge", "cirno", "hakurei_reimu"},
 	})
 	if err != nil {
 		t.Fatal(err)

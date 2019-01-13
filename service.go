@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -150,10 +151,10 @@ func (s *Service) formatExplicitness() string {
 
 func (s *Service) initTag(tag string) (err error) {
 	var (
-		count int
-		first = true
-		f     = s.filters(tag)
-		req   = f.FetchRequest
+		count, fetchCount int
+		first             = true
+		f                 = s.filters(tag)
+		req               = f.FetchRequest
 	)
 	for {
 		count, err = db.ImageCount(f)
@@ -161,13 +162,21 @@ func (s *Service) initTag(tag string) (err error) {
 			return
 		}
 		if count >= poolMinSize {
+			// Terminate open line
+			if fetchCount != 0 {
+				fmt.Print("\n")
+			}
 			return
 		} else if first {
 			first = false
-			log.Printf("captchouli: initializing tag=%s explicitness=%s\n",
+			fmt.Printf("captchouli: initializing tag=%s explicitness=%s\n",
 				tag, s.formatExplicitness())
 		}
 
+		if !s.opts.Quiet {
+			fetchCount++
+			fmt.Fprintf(os.Stdout, "\rfetch attempt: %d", fetchCount)
+		}
 		err = fetch(req)
 		if err != nil {
 			return

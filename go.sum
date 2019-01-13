@@ -4,6 +4,8 @@ github.com/Masterminds/squirrel v0.0.0-20181126160726-407c0f9b9512 h1:2nyS7BEYZj
 github.com/Masterminds/squirrel v0.0.0-20181126160726-407c0f9b9512/go.mod h1:xnKTFzjGUiZtiOagBsfnvomW+nJg2usB1ZpordQWqNM=
 github.com/Masterminds/squirrel v0.0.0-20181204161840-e5bf00f96d4a h1:pMmt05odIWMlrx89uWavde2DDX8SXzaYnbGW+knFeU0=
 github.com/Masterminds/squirrel v0.0.0-20181204161840-e5bf00f96d4a/go.mod h1:xnKTFzjGUiZtiOagBsfnvomW+nJg2usB1ZpordQWqNM=
+github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09 h1:enWVS77aJkLWVIUExiqF6A8eWTVzCXUKUvkST3/wyKI=
+github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09/go.mod h1:yaPeOnPG5ZRwL9oKdTsO/prlkPbXWZlRVMQ/gGlzIuA=
 github.com/bakape/boorufetch v0.0.0-20181202192329-4e9f999d98ed h1:wH6FmeLtKtKIULVlpNz7xMf/giDSPSa0diD7S9zP/VI=
 github.com/bakape/boorufetch v0.0.0-20181202192329-4e9f999d98ed/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
 github.com/bakape/boorufetch v0.0.0-20181209175127-a461c8aa4884 h1:osPsMSLF5KD9+IWUMv9+YpO+AwjqFDL7CljMHy/Dua8=
@@ -16,6 +18,12 @@ github.com/bakape/boorufetch v0.0.0-20181213235927-19fd09a74a15 h1:owdC/nHBeFBBe
 github.com/bakape/boorufetch v0.0.0-20181213235927-19fd09a74a15/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
 github.com/bakape/boorufetch v0.0.0-20181214005807-2007c923fd1c h1:TYroveHykv4Lnfg9KBKPHhqIlTqqk0CjPagjZRvz8dE=
 github.com/bakape/boorufetch v0.0.0-20181214005807-2007c923fd1c/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
+github.com/bakape/boorufetch v0.0.0-20190113143814-fa75fea3feac h1:Hk1xdCpw3WE7FtJu0Y5Egrmoxr2wUMvDMKqz2B2Ldf4=
+github.com/bakape/boorufetch v0.0.0-20190113143814-fa75fea3feac/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
+github.com/bakape/boorufetch v1.0.0 h1:Cv4LAxZUYYUNmmgMFDrgyoeOHKROTUsE83vLaMnciSg=
+github.com/bakape/boorufetch v1.0.0/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
+github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dimfeld/httptreemux v5.0.1+incompatible h1:Qj3gVcDNoOthBAqftuD596rm4wg/adLLz5xh5CmpiCA=
 github.com/dimfeld/httptreemux v5.0.1+incompatible/go.mod h1:rbUlSV+CCpv/SuqUTP/8Bk2O3LyUV436/yaRGkhP6Z0=
 github.com/julienschmidt/httprouter v1.2.0 h1:TDTW5Yz1mjftljbcKqRcrYhd4XeOoI98t+9HbQbYf7g=
@@ -26,6 +34,11 @@ github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 h1:P6pPBnrTSX3DEVR4fDembhR
 github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0/go.mod h1:vmVJ0l/dxyfGW6FmdpVm2joNMFikkuWg0EoCKLGUMNw=
 github.com/mattn/go-sqlite3 v1.10.0 h1:jbhqpg7tQe4SupckyijYiy0mJJ/pRyHvXf7JdWK860o=
 github.com/mattn/go-sqlite3 v1.10.0/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
+github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/quicktemplate v1.0.0 h1:lDPmM1AetDm736L5ZHGuVkMUA14+I0g3jbxWAozquGM=
@@ -38,3 +51,5 @@ golang.org/x/net v0.0.0-20181207154023-610586996380 h1:zPQexyRtNYBc7bcHmehl1dH6T
 golang.org/x/net v0.0.0-20181207154023-610586996380/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20181213202711-891ebc4b82d6 h1:gT0Y6H7hbVPUtvtk0YGxMXPgN+p8fYlqWkgJeUCZcaQ=
 golang.org/x/net v0.0.0-20181213202711-891ebc4b82d6/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20190110200230-915654e7eabc h1:Yx9JGxI1SBhVLFjpAkWMaO1TF+xyqtHLjZpvQboJGiM=
+golang.org/x/net v0.0.0-20190110200230-915654e7eabc/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=

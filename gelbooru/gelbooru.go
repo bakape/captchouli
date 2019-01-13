@@ -22,7 +22,7 @@ var (
 )
 
 type cacheEntry struct {
-	pages    map[int]resultPage
+	pages    map[int]*resultPage
 	maxPages int // Estimate for maximum number of pages
 }
 
@@ -65,7 +65,11 @@ func (p *resultPage) getImage() (img image, err error) {
 		tags                 []boorufetch.Tag
 		hasChar, valid, inDB bool
 	)
-	for post := p.posts.Pop(); post != nil; post = p.posts.Pop() {
+	for {
+		post := p.posts.Pop()
+		if post == nil {
+			break
+		}
 		img.MD5, err = post.MD5()
 		if err != nil {
 			return
@@ -116,9 +120,14 @@ func (p *resultPage) getImage() (img image, err error) {
 			return
 		}
 		for _, t := range tags {
-			// Allow only images with 1 character in them
+			// Allow only images with 1 character in them and ensure said
+			// character matches the requested tag in case of gelbooru-danbooru
+			// desync
 			if t.Type == boorufetch.Character {
-				if hasChar {
+				if hasChar ||
+					// Ensure no case mismatch, as tags are queried as lowercase
+					// in the boorus
+					strings.ToLower(t.Tag) != strings.ToLower(p.requestedTag) {
 					err = db.BlacklistImage(img.MD5)
 					if err != nil {
 						return
@@ -195,7 +204,7 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 }
 
 // Fetch a random page from gelbooru or cache
-func fetchPage(requested, tags string) (res resultPage, err error) {
+func fetchPage(requested, tags string) (res *resultPage, err error) {
 	store := cache[tags]
 	if store == nil {
 		maxPages := 200
@@ -203,7 +212,7 @@ func fetchPage(requested, tags string) (res resultPage, err error) {
 			maxPages = 2
 		}
 		store = &cacheEntry{
-			pages:    make(map[int]resultPage),
+			pages:    make(map[int]*resultPage),
 			maxPages: maxPages,
 		}
 		cache[tags] = store
@@ -224,6 +233,8 @@ func fetchPage(requested, tags string) (res resultPage, err error) {
 	res, ok := store.pages[page]
 	if ok { // Cache hit
 		return
+	} else {
+		res = new(resultPage)
 	}
 
 	posts, err := boorufetch.FromGelbooru(tags, uint(page), 100)
