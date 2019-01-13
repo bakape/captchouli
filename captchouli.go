@@ -111,9 +111,18 @@ func ExtractCaptcha(r io.Reader) (id [64]byte, solution []byte, err error) {
 }
 
 func findID(n *html.Node) string {
+	getAttr := func(key string) string {
+		for _, attr := range n.Attr {
+			if attr.Key == key {
+				return attr.Val
+			}
+		}
+		return ""
+	}
+
 	if n.Type == html.ElementNode && n.Data == "input" {
-		if getAttr(n, "name") == IDKey {
-			return getAttr(n, "value")
+		if getAttr("name") == IDKey {
+			return getAttr("value")
 		}
 	}
 
@@ -124,14 +133,5 @@ func findID(n *html.Node) string {
 		}
 	}
 
-	return ""
-}
-
-func getAttr(n *html.Node, key string) string {
-	for _, attr := range n.Attr {
-		if attr.Key == key {
-			return attr.Val
-		}
-	}
 	return ""
 }
