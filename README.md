@@ -1,11 +1,12 @@
 [![GoDoc](https://godoc.org/github.com/bakape/captchouli?status.svg)](https://godoc.org/github.com/bakape/captchouli)
+[![Build Status](https://travis-ci.org/bakape/captchouli.svg?branch=master)](https://travis-ci.org/bakape/captchouli)
 
 # captchouli
 booru-backed procedurally-generated anime image captcha library and server
 
 ![sample](https://github.com/bakape/captchouli/raw/master/assets/sample.png)
 
-Captchouli scrapes boorus for admin-defined tags and generates and verifies captchas for user anti-bot authentication. 
+Captchouli scrapes boorus for admin-defined tags and generates and verifies captchas for user anti-bot authentication.
 
 ## Installation
 
@@ -16,11 +17,11 @@ Captchouli scrapes boorus for admin-defined tags and generates and verifies capt
 
 ## Usage
 
-Captchouli can be used as either a library or standalone server. 
+Captchouli can be used as either a library or standalone server.
 
 ### Server
 
-Run `captchouli --help` for a list CLI flags. 
+Run `captchouli --help` for a list CLI flags.
 
 After the server has been started and the inital tag pool populated captchouli can be accessed using an HTTP API:
 
@@ -34,4 +35,4 @@ After the server has been started and the inital tag pool populated captchouli c
 ### Advanced use cases
 
 For more advanced use cases please su the Go API documented here [![GoDoc](https://godoc.org/github.com/bakape/captchouli?status.svg)](https://godoc.org/github.com/bakape/captchouli).
- 
+
