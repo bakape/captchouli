@@ -175,7 +175,7 @@ func (s *Service) initTag(tag string) (err error) {
 
 		if !s.opts.Quiet {
 			fetchCount++
-			fmt.Fprintf(os.Stdout, "\rfetch attempt: %d", fetchCount)
+			fmt.Fprintf(os.Stdout, "\rfetch attempt: %d\t", fetchCount)
 		}
 		err = fetch(req)
 		if err != nil {
