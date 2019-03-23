@@ -23,7 +23,7 @@ Captchouli can be used as either a library or standalone server.
 
 Run `captchouli --help` for a list CLI flags.
 
-After the server has been started and the inital tag pool populated captchouli can be accessed using an HTTP API:
+After the server has been started and the inital tag pool populated captchouli can be accessed using a HTTP API:
 
 | Method | Address | Receives                                                                                                                               | Returns                                                                                                                                    |
 |--------|---------|----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
@@ -34,5 +34,5 @@ After the server has been started and the inital tag pool populated captchouli c
 
 ### Advanced use cases
 
-For more advanced use cases please su the Go API documented here [![GoDoc](https://godoc.org/github.com/bakape/captchouli?status.svg)](https://godoc.org/github.com/bakape/captchouli).
+For more advanced use cases please refer to the Go API documented here [![GoDoc](https://godoc.org/github.com/bakape/captchouli?status.svg)](https://godoc.org/github.com/bakape/captchouli).
 
