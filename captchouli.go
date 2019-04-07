@@ -64,7 +64,7 @@ func ExtractSolution(r *http.Request) (solution []byte, err error) {
 	return
 }
 
-// Decode captcha ID from POSt request
+// Decode captcha ID from POST request
 func ExtractID(r *http.Request) (id [64]byte, err error) {
 	err = r.ParseForm()
 	if err != nil {
