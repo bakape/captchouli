@@ -2,9 +2,9 @@ package gelbooru
 
 import (
 	"database/sql"
-	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -85,7 +85,7 @@ func tryFetchPage(requested, tags string) (err error) {
 	if store == nil {
 		maxPages := 200
 		if common.IsTest { // Reduce test duration
-			maxPages = 2
+			maxPages = 10
 		}
 		store = &cacheEntry{
 			pages:    make(map[int]struct{}),
@@ -139,7 +139,7 @@ func tryFetchPage(requested, tags string) (err error) {
 		hasChar, valid, inDB bool
 	)
 	for i, p := range posts {
-		if common.IsTest && i > 1 {
+		if common.IsTest && i >= 10 {
 			break // Shorten tests
 		}
 		img.MD5, err = p.MD5()
@@ -229,7 +229,7 @@ func tryFetchPage(requested, tags string) (err error) {
 			return
 		}
 		if common.IsTest {
-			fmt.Printf("logged pending image: %s\n", img.URL)
+			log.Printf("logged pending image: %s\n", img.URL)
 		}
 
 	skip:
