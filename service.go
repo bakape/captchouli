@@ -169,7 +169,7 @@ func (s *Service) initTag(tag string) (err error) {
 			return
 		} else if first {
 			first = false
-			fmt.Printf("captchouli: initializing tag=%s explicitness=%s\n",
+			log.Printf("captchouli: initializing tag=%s explicitness=%s\n",
 				tag, s.formatExplicitness())
 		}
 
