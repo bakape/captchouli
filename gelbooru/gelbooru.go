@@ -138,7 +138,10 @@ func tryFetchPage(requested, tags string) (err error) {
 		img                  = db.PendingImage{TargetTag: requested}
 		hasChar, valid, inDB bool
 	)
-	for _, p := range posts {
+	for i, p := range posts {
+		if common.IsTest && i > 1 {
+			break // Shorten tests
+		}
 		img.MD5, err = p.MD5()
 		if err != nil {
 			return
