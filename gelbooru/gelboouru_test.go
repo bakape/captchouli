@@ -31,27 +31,25 @@ func testFetches(t *testing.T, tag string) {
 	w.SetRowLine(true)
 	w.SetHeader([]string{"rating", "MD5", "tags"})
 
-	for i := 0; i < 10; i++ {
-		f, img, err := Fetch(common.FetchRequest{
-			Tag:    tag,
-			Source: common.Gelbooru,
-		})
+	f, img, err := Fetch(common.FetchRequest{
+		Tag:    tag,
+		Source: common.Gelbooru,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f != nil {
+		err = os.Remove(f.Name())
 		if err != nil {
 			t.Fatal(err)
 		}
-		if f != nil {
-			err = os.Remove(f.Name())
-			if err != nil {
-				t.Fatal(err)
-			}
-			err = f.Close()
-			if err != nil {
-				t.Fatal(err)
-			}
-			w.Append([]string{img.Rating.String(),
-				hex.EncodeToString(img.MD5[:]),
-				fmt.Sprint(img.Tags)})
+		err = f.Close()
+		if err != nil {
+			t.Fatal(err)
 		}
+		w.Append([]string{img.Rating.String(),
+			hex.EncodeToString(img.MD5[:]),
+			fmt.Sprint(img.Tags)})
 	}
 
 	w.Render()

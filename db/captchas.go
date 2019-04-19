@@ -78,7 +78,7 @@ func getMatchingImages(f Filters, images *[9][16]byte, buf *[]byte,
 		}).
 		OrderBy("random()").
 		Limit(uint64(n))
-	err = scanHashes(q, 0, images, buf)
+	err = queryHashes(q, 0, images, buf)
 	return
 }
 
@@ -98,10 +98,10 @@ func getNonMatchingImages(f Filters, n int, images *[9][16]byte, buf *[]byte,
 		}).
 		OrderBy("random()").
 		Limit(uint64(n))
-	return scanHashes(q, 9-n, images, buf)
+	return queryHashes(q, 9-n, images, buf)
 }
 
-func scanHashes(q squirrel.SelectBuilder, i int, images *[9][16]byte,
+func queryHashes(q squirrel.SelectBuilder, i int, images *[9][16]byte,
 	buf *[]byte,
 ) (err error) {
 	dbMu.RLock()

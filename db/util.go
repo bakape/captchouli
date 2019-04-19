@@ -29,3 +29,18 @@ func InTransaction(fn func(*sql.Tx) error) (err error) {
 	}
 	return tx.Commit()
 }
+
+// Check, if image exists in table
+func imageExists(table string, md5 [16]byte) (exists bool, err error) {
+	dbMu.RLock()
+	defer dbMu.RUnlock()
+
+	err = sq.Select("1").
+		From(table).
+		Where("hash = ?", md5[:]).
+		Scan(&exists)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
+	return
+}

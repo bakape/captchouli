@@ -56,6 +56,18 @@ var migrations = []func(*sql.Tx) error{
 			createIndex("images", "rating", false),
 		)
 	},
+	func(tx *sql.Tx) (err error) {
+		return execAll(tx,
+			`create table pending_images (
+				rating integer not null,
+				hash blob primary key,
+				target_tag text not null,
+				url  text not null,
+				tags  blob not null
+			)`,
+			createIndex("pending_images", "target_tag", false),
+		)
+	},
 }
 
 // Run migrations from version `from`to version `to`

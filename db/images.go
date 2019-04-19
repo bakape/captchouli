@@ -17,18 +17,8 @@ type Image struct {
 
 // Return, if file is not already registered in the DB as valid thumbnail or in
 // a blacklist
-func IsInDatabase(md5 [16]byte) (is bool, err error) {
-	dbMu.RLock()
-	defer dbMu.RUnlock()
-
-	err = sq.Select("1").
-		From("images").
-		Where("hash = ?", md5[:]).
-		Scan(&is)
-	if err == sql.ErrNoRows {
-		err = nil
-	}
-	return
+func IsInDatabase(md5 [16]byte) (bool, error) {
+	return imageExists("images", md5)
 }
 
 // Write image to database

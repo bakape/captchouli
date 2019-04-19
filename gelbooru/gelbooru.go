@@ -1,10 +1,10 @@
 package gelbooru
 
 import (
-	"errors"
+	"database/sql"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"strings"
@@ -16,143 +16,16 @@ import (
 )
 
 var (
-	cache        = make(map[string]*cacheEntry)
-	mu           sync.Mutex
-	errPageEmpty = errors.New("page empty")
+	cache = make(map[string]*cacheEntry)
+	mu    sync.Mutex
+
+	// Tag deduplication map. Reused to reduce allocations.
+	dedupMap = make(map[string]struct{})
 )
 
 type cacheEntry struct {
-	pages    map[int]*resultPage
+	pages    map[int]struct{}
 	maxPages int // Estimate for maximum number of pages
-}
-
-type image struct {
-	db.Image
-	url string
-}
-
-// Simple stack for posts
-type postStack struct {
-	posts []boorufetch.Post
-}
-
-func (s *postStack) Push(p boorufetch.Post) {
-	s.posts = append(s.posts, p)
-}
-
-func (s *postStack) Pop() boorufetch.Post {
-	if len(s.posts) == 0 {
-		return nil
-	}
-
-	i := len(s.posts) - 1
-	p := s.posts[i]
-	s.posts[i] = nil // Don't keep reference in backing array to enable GC
-	s.posts = s.posts[:i]
-	return p
-}
-
-type resultPage struct {
-	requestedTag string
-	posts        postStack
-}
-
-// Pop random image from page
-func (p *resultPage) getImage() (img image, err error) {
-	img.Source = common.Gelbooru
-	var (
-		dedup                map[string]struct{}
-		tags                 []boorufetch.Tag
-		hasChar, valid, inDB bool
-	)
-	for {
-		post := p.posts.Pop()
-		if post == nil {
-			break
-		}
-		img.MD5, err = post.MD5()
-		if err != nil {
-			return
-		}
-		inDB, err = db.IsInDatabase(img.MD5)
-		if err != nil {
-			return
-		}
-		if inDB {
-			goto skip
-		}
-
-		// File must be a still image
-		valid = false
-		img.url = post.FileURL()
-		if img.url == "" {
-			goto skip
-		}
-		for _, s := range [...]string{"jpg", "jpeg", "png"} {
-			if strings.HasSuffix(img.url, s) {
-				valid = true
-				break
-			}
-		}
-		if !valid {
-			goto skip
-		}
-
-		// Rating and tag fetches might need a network fetch, so do these later
-
-		img.Rating, err = post.Rating()
-		if err != nil {
-			return
-		}
-
-		if dedup == nil {
-			// Only allocate when we actually need it
-			dedup = make(map[string]struct{}, 128)
-		} else {
-			for k := range dedup {
-				delete(dedup, k)
-			}
-		}
-
-		hasChar = false
-		tags, err = post.Tags()
-		if err != nil {
-			return
-		}
-		for _, t := range tags {
-			// Allow only images with 1 character in them and ensure said
-			// character matches the requested tag in case of gelbooru-danbooru
-			// desync
-			if t.Type == boorufetch.Character {
-				if hasChar ||
-					// Ensure no case mismatch, as tags are queried as lowercase
-					// in the boorus
-					strings.ToLower(t.Tag) != strings.ToLower(p.requestedTag) {
-					err = db.BlacklistImage(img.MD5)
-					if err != nil {
-						return
-					}
-					goto skip
-				}
-				hasChar = true
-			}
-			// Dedup tags just in case. Boorus can't be trusted too much.
-			dedup[t.Tag] = struct{}{}
-		}
-		dedup[p.requestedTag] = struct{}{} // Ensure map contains initial tag
-
-		img.Tags = make([]string, 0, len(dedup))
-		for t := range dedup {
-			img.Tags = append(img.Tags, t)
-		}
-
-		return
-
-	skip:
-	}
-
-	err = errPageEmpty
-	return
 }
 
 // Fetch random matching file from Gelbooru.
@@ -162,29 +35,31 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	tags :=
-		"solo -photo -monochrome -multiple_girls -couple -multiple_boys -cosplay -objectification " +
-			req.Tag
+	tags := "solo -photo -monochrome -multiple_girls -couple -multiple_boys " +
+		"-cosplay -objectification " +
+		req.Tag
 
-	page, err := fetchPage(req.Tag, tags)
+	err = tryFetchPage(req.Tag, tags)
 	if err != nil {
 		return
 	}
 
-	img, err := page.getImage()
-	switch err {
-	case nil:
-	case errPageEmpty:
-		// Just skip this fetch
-		err = nil
-		return
-	default:
+	img, err := db.PopRandomPendingImage(req.Tag)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = nil
+		}
 		return
 	}
 
-	image = img.Image
+	image = db.Image{
+		Rating: img.Rating,
+		Source: req.Source,
+		MD5:    img.MD5,
+		Tags:   img.Tags,
+	}
 
-	r, err := http.Get(img.url)
+	r, err := http.Get(img.URL)
 	if err != nil {
 		return
 	}
@@ -196,6 +71,7 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	}
 	_, err = io.Copy(f, r.Body)
 	if err != nil {
+		// Ignore any errors here. This cleanup need not succeed.
 		f.Close()
 		os.Remove(f.Name())
 		f = nil
@@ -203,8 +79,8 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	return
 }
 
-// Fetch a random page from gelbooru or cache
-func fetchPage(requested, tags string) (res *resultPage, err error) {
+// Attempt to fetch a random page from gelbooru
+func tryFetchPage(requested, tags string) (err error) {
 	store := cache[tags]
 	if store == nil {
 		maxPages := 200
@@ -212,13 +88,17 @@ func fetchPage(requested, tags string) (res *resultPage, err error) {
 			maxPages = 2
 		}
 		store = &cacheEntry{
-			pages:    make(map[int]*resultPage),
+			pages:    make(map[int]struct{}),
 			maxPages: maxPages,
 		}
 		cache[tags] = store
 	}
 	if store.maxPages == 0 {
 		err = common.ErrNoMatch
+		return
+	}
+	if len(store.pages) == store.maxPages {
+		// Already fetched all pages
 		return
 	}
 
@@ -230,11 +110,9 @@ func fetchPage(requested, tags string) (res *resultPage, err error) {
 		page = 0
 	}
 
-	res, ok := store.pages[page]
+	_, ok := store.pages[page]
 	if ok { // Cache hit
 		return
-	} else {
-		res = new(resultPage)
 	}
 
 	posts, err := boorufetch.FromGelbooru(tags, uint(page), 100)
@@ -250,18 +128,112 @@ func fetchPage(requested, tags string) (res *resultPage, err error) {
 		// Empty page. Don't check pages past this one. They will also be empty.
 		store.maxPages = page
 		// Retry with a new random page
-		return fetchPage(requested, tags)
+		return tryFetchPage(requested, tags)
 	}
 
-	// Shuffle posts and push them to the stack
-	res.requestedTag = requested
-	rand.New(common.CryptoSource).Shuffle(len(posts), func(i, j int) {
-		posts[i], posts[j] = posts[j], posts[i]
-	})
+	// Push applicable posts to pending image set.
+	// Reuse allocated resources, where possible.
+	var (
+		booruTags            []boorufetch.Tag
+		img                  = db.PendingImage{TargetTag: requested}
+		hasChar, valid, inDB bool
+	)
 	for _, p := range posts {
-		res.posts.Push(p)
+		img.MD5, err = p.MD5()
+		if err != nil {
+			return
+		}
+
+		// Check, if not already in DB
+		inDB, err = db.IsInDatabase(img.MD5)
+		if err != nil {
+			return
+		}
+		if inDB {
+			continue
+		}
+		inDB, err = db.IsPendingImage(img.MD5)
+		if err != nil {
+			return
+		}
+		if inDB {
+			continue
+		}
+
+		// File must be a still image
+		valid = false
+		img.URL = p.FileURL()
+		if img.URL != "" {
+			for _, s := range [...]string{"jpg", "jpeg", "png"} {
+				if strings.HasSuffix(img.URL, s) {
+					valid = true
+					break
+				}
+			}
+		}
+		if !valid {
+			err = db.BlacklistImage(img.MD5)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		// Rating and tag fetches might need a network fetch, so do these later
+
+		img.Rating, err = p.Rating()
+		if err != nil {
+			return
+		}
+
+		hasChar = false
+		booruTags, err = p.Tags()
+		if err != nil {
+			return
+		}
+		for k := range dedupMap {
+			delete(dedupMap, k)
+		}
+		for _, t := range booruTags {
+			// Allow only images with 1 character in them and ensure said
+			// character matches the requested tag in case of gelbooru-danbooru
+			// desync
+			if t.Type == boorufetch.Character {
+				if hasChar ||
+					// Ensure no case mismatch, as tags are queried as lowercase
+					// in the boorus
+					strings.ToLower(t.Tag) != strings.ToLower(requested) {
+					err = db.BlacklistImage(img.MD5)
+					if err != nil {
+						return
+					}
+					goto skip
+				}
+				hasChar = true
+			}
+			// Dedup tags just in case. Boorus can't be trusted too much.
+			dedupMap[t.Tag] = struct{}{}
+		}
+		dedupMap[requested] = struct{}{} // Ensure map contains initial tag
+
+		img.Tags = make([]string, 0, len(dedupMap))
+		for t := range dedupMap {
+			img.Tags = append(img.Tags, t)
+		}
+
+		err = db.InsertPendingImage(img)
+		if err != nil {
+			return
+		}
+		if common.IsTest {
+			fmt.Printf("logged pending image: %s\n", img.URL)
+		}
+
+	skip:
 	}
 
-	cache[tags].pages[page] = res
+	// Set page as seen
+	store.pages[page] = struct{}{}
+
 	return
 }
