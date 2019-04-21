@@ -8,6 +8,11 @@ extern "C" {
 #include <opencv2/opencv.hpp>
 #include <stdexcept>
 
+#if CV_MAJOR_VERSION > 3
+    #define CV_INTER_LINEAR cv::INTER_LINEAR
+    #define CV_IMWRITE_JPEG_QUALITY cv::IMWRITE_JPEG_QUALITY
+#endif
+
 // Size of thumbnail dimension. thumbnail is always a square.
 static const int thumb_dim = 150;
 
