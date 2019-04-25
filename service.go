@@ -204,6 +204,11 @@ func (s *Service) filters(tag string) db.Filters {
 // bufio.NewWriter.
 func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 ) (id [64]byte, err error) {
+	if len(s.opts.Tags) == 0 {
+		err = errors.New("no tags set")
+		return
+	}
+
 	tag := s.opts.Tags[common.RandomInt(len(s.opts.Tags))]
 	f := s.filters(tag)
 	n, err := db.ImageCount(f)
