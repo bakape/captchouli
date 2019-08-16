@@ -24,6 +24,8 @@ github.com/bakape/boorufetch v1.0.0 h1:Cv4LAxZUYYUNmmgMFDrgyoeOHKROTUsE83vLaMnci
 github.com/bakape/boorufetch v1.0.0/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
 github.com/bakape/boorufetch v1.0.1 h1:lTgxhYNQazFB/0SElkkcH3xX6URlHxvTiPgtbt4hIQ0=
 github.com/bakape/boorufetch v1.0.1/go.mod h1:5w+CugEba6no6uHTyaDMjZeYq5Xir8C6A9xtZr/wsbs=
+github.com/bakape/boorufetch v1.0.2 h1:vNj0V5Mgn+66OfNGYl5CH4y+v9vKaWJTpYsdBGLLL6g=
+github.com/bakape/boorufetch v1.0.2/go.mod h1:2W7Hvc2VN/yybdYXQQhJr8bumSeLuiqnmHwo9BkPzSA=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dimfeld/httptreemux v5.0.1+incompatible h1:Qj3gVcDNoOthBAqftuD596rm4wg/adLLz5xh5CmpiCA=
