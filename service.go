@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/bakape/boorufetch"
 	"github.com/bakape/captchouli/common"
@@ -75,8 +76,7 @@ type Options struct {
 	Explicitness []Rating
 
 	// Tags to source for captcha solutions. One tag is randomly chosen for each
-	// generated captcha. Required to contain at least 1 tag but the database
-	// must include at least 3 different tags for correct operation.
+	// generated captcha. Required to contain at least 3 tags.
 	//
 	// Note that you can only include tags that are discernable from the
 	// character's face, such as who the character is (example: "cirno") or a
@@ -86,49 +86,94 @@ type Options struct {
 
 // Encapsulates a configured captcha-generation and verification service
 type Service struct {
-	opts            Options
+	quiet           bool
+	source          DataSource
 	explicitnessStr string
+	explicitness    []Rating
+	tags            appendSlice
+}
+
+// Slice with thread-safe appending
+type appendSlice struct {
+	mu    sync.RWMutex
+	inner []string
+}
+
+func (s *appendSlice) Get() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.inner
+}
+
+func (s *appendSlice) Append(extra string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.inner = append(s.inner, extra)
 }
 
 // Create new captcha-generation and verification service
 func NewService(opts Options) (s *Service, err error) {
-	if len(opts.Tags) == 0 {
-		err = Error{errors.New("no tags provided")}
+	if len(opts.Tags) < 3 {
+		err = Error{errors.New("at least 3 tags required")}
 		return
 	}
 
 	s = &Service{
-		opts: opts,
+		quiet:        opts.Quiet,
+		source:       opts.Source,
+		explicitness: opts.Explicitness,
 	}
-	if len(s.opts.Explicitness) == 0 {
-		s.opts.Explicitness = []Rating{Safe}
+	if len(s.explicitness) == 0 {
+		s.explicitness = []Rating{Safe}
 	}
 
 	err = initClassifier(opts.Source)
 	if err != nil {
 		return
 	}
-	s.initPool()
-	if !s.opts.Quiet {
+	err = s.initPool(opts.Tags)
+	if err != nil {
+		return
+	}
+
+	if !s.quiet {
 		log.Println("captchouli: service started")
 	}
 	return
 }
 
 // Initialize pool with enough images, if lacking
-func (s *Service) initPool() {
-	completed := make([]string, 0, len(s.opts.Tags))
-	for _, t := range s.opts.Tags {
-		err := s.initTag(t)
-		if err != nil {
-			log.Printf(
-				"captchouli: error initializing image pool for tag `%s`: %s",
-				t, err)
-		} else {
-			completed = append(completed, t)
-		}
+func (s *Service) initPool(tags []string) (err error) {
+	formatErr := func(tag string, err error) error {
+		return fmt.Errorf(
+			"captchouli: error initializing image pool for tag `%s`: %w",
+			tag,
+			err,
+		)
 	}
-	s.opts.Tags = completed
+
+	// Init first 3 tags needed for operation first and init the rest
+	// eventually to reduce startup times
+	for _, tag := range tags[:3] {
+		err = s.initTag(tag)
+		if err != nil {
+			return formatErr(tag, err)
+		}
+		s.tags.Append(tag)
+	}
+	if len(tags) > 3 {
+		go func() {
+			for _, tag := range tags[3:] {
+				err = s.initTag(tag)
+				if err != nil {
+					log.Print(formatErr(tag, err))
+				} else {
+					s.tags.Append(tag)
+				}
+			}
+		}()
+	}
+	return
 }
 
 func (s *Service) formatExplicitness() string {
@@ -138,7 +183,7 @@ func (s *Service) formatExplicitness() string {
 
 	var w bytes.Buffer
 	w.WriteByte('[')
-	for i, r := range s.opts.Explicitness {
+	for i, r := range s.explicitness {
 		if i != 0 {
 			w.WriteString(", ")
 		}
@@ -169,11 +214,14 @@ func (s *Service) initTag(tag string) (err error) {
 			return
 		} else if first {
 			first = false
-			log.Printf("captchouli: initializing tag=%s explicitness=%s\n",
-				tag, s.formatExplicitness())
+			log.Printf(
+				"captchouli: initializing tag=%s explicitness=%s\n",
+				tag,
+				s.formatExplicitness(),
+			)
 		}
 
-		if !s.opts.Quiet {
+		if !s.quiet {
 			fetchCount++
 			fmt.Fprintf(os.Stdout, "\rfetch attempt: %d\t", fetchCount)
 		}
@@ -187,14 +235,14 @@ func (s *Service) initTag(tag string) (err error) {
 func (s *Service) request(tag string) common.FetchRequest {
 	return common.FetchRequest{
 		Tag:    tag,
-		Source: s.opts.Source,
+		Source: s.source,
 	}
 }
 
 func (s *Service) filters(tag string) db.Filters {
 	return db.Filters{
 		FetchRequest: s.request(tag),
-		Explicitness: s.opts.Explicitness,
+		Explicitness: s.explicitness,
 	}
 }
 
@@ -204,12 +252,8 @@ func (s *Service) filters(tag string) db.Filters {
 // bufio.NewWriter.
 func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 ) (id [64]byte, err error) {
-	if len(s.opts.Tags) == 0 {
-		err = errors.New("no tags set")
-		return
-	}
-
-	tag := s.opts.Tags[common.RandomInt(len(s.opts.Tags))]
+	tags := s.tags.Get()
+	tag := tags[common.RandomInt(len(tags))]
 	f := s.filters(tag)
 	n, err := db.ImageCount(f)
 	if err != nil {
@@ -226,7 +270,7 @@ func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 
 	id, images, err := db.GenerateCaptcha(db.Filters{
 		FetchRequest: s.request(tag),
-		Explicitness: s.opts.Explicitness,
+		Explicitness: s.explicitness,
 	})
 	if err != nil {
 		return
