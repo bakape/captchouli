@@ -2,7 +2,7 @@ module github.com/bakape/captchouli
 
 require (
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
-	github.com/bakape/boorufetch v1.0.2
+	github.com/bakape/boorufetch v1.0.3
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.3.0 // indirect

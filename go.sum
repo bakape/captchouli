@@ -2,6 +2,8 @@ github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09 h1:enWVS77aJk
 github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09/go.mod h1:yaPeOnPG5ZRwL9oKdTsO/prlkPbXWZlRVMQ/gGlzIuA=
 github.com/bakape/boorufetch v1.0.2 h1:vNj0V5Mgn+66OfNGYl5CH4y+v9vKaWJTpYsdBGLLL6g=
 github.com/bakape/boorufetch v1.0.2/go.mod h1:2W7Hvc2VN/yybdYXQQhJr8bumSeLuiqnmHwo9BkPzSA=
+github.com/bakape/boorufetch v1.0.3 h1:+wNoPvpnLInnFMFJpIcYyoXN/r0RanwnPXUGjyiQxFk=
+github.com/bakape/boorufetch v1.0.3/go.mod h1:xswMjqJ3hp2UAsE0XOidw/qkKHoA7mwF/4dfykxYUu0=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
