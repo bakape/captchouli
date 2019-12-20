@@ -18,9 +18,6 @@ import (
 var (
 	cache = make(map[string]*cacheEntry)
 	mu    sync.Mutex
-
-	// Tag deduplication map. Reused to reduce allocations.
-	dedupMap = make(map[string]struct{})
 )
 
 type cacheEntry struct {
@@ -134,9 +131,9 @@ func tryFetchPage(requested, tags string) (err error) {
 	// Push applicable posts to pending image set.
 	// Reuse allocated resources, where possible.
 	var (
-		booruTags            []boorufetch.Tag
-		img                  = db.PendingImage{TargetTag: requested}
-		hasChar, valid, inDB bool
+		booruTags                      []boorufetch.Tag
+		img                            = db.PendingImage{TargetTag: requested}
+		hasChar, valid, inDB, contains bool
 	)
 	for i, p := range posts {
 		if common.IsTest && i >= 10 {
@@ -148,6 +145,8 @@ func tryFetchPage(requested, tags string) (err error) {
 		}
 
 		// Check, if not already in DB
+		//
+		// TODO: Perform this in one query on array of bytea hashes
 		inDB, err = db.IsInDatabase(img.MD5)
 		if err != nil {
 			return
@@ -194,9 +193,6 @@ func tryFetchPage(requested, tags string) (err error) {
 		if err != nil {
 			return
 		}
-		for k := range dedupMap {
-			delete(dedupMap, k)
-		}
 		for _, t := range booruTags {
 			// Allow only images with 1 character in them and ensure said
 			// character matches the requested tag in case of gelbooru-danbooru
@@ -214,14 +210,22 @@ func tryFetchPage(requested, tags string) (err error) {
 				}
 				hasChar = true
 			}
-			// Dedup tags just in case. Boorus can't be trusted too much.
-			dedupMap[t.Tag] = struct{}{}
 		}
-		dedupMap[requested] = struct{}{} // Ensure map contains initial tag
 
-		img.Tags = make([]string, 0, len(dedupMap))
-		for t := range dedupMap {
-			img.Tags = append(img.Tags, t)
+		contains = false
+		for _, t := range booruTags {
+			if t.Tag == requested {
+				contains = true
+				break
+			}
+		}
+		img.Tags = make([]string, 0, len(booruTags))
+		for _, t := range booruTags {
+			img.Tags = append(img.Tags, t.Tag)
+		}
+		if !contains {
+			// Ensure array contains initial tag
+			img.Tags = append(img.Tags, requested)
 		}
 
 		err = db.InsertPendingImage(img)

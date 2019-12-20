@@ -4,9 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	"github.com/bakape/captchouli/common"
-
 	"github.com/bakape/boorufetch"
+	"github.com/bakape/captchouli/common"
 )
 
 // Image data fetched from boorus pending processing by random selection

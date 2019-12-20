@@ -3,12 +3,10 @@ package db
 import (
 	crypto "crypto/rand"
 	"database/sql"
-	"math/rand"
-
-	"github.com/bakape/boorufetch"
-
 	"github.com/Masterminds/squirrel"
+	"github.com/bakape/boorufetch"
 	"github.com/bakape/captchouli/common"
+	"math/rand"
 )
 
 // Filters for querying an image for a captcha
