@@ -1,6 +1,7 @@
 package gelbooru
 
 import (
+	"context"
 	"database/sql"
 	"io"
 	"io/ioutil"
@@ -128,119 +129,130 @@ func tryFetchPage(requested, tags string) (err error) {
 		return tryFetchPage(requested, tags)
 	}
 
-	// Push applicable posts to pending image set.
-	// Reuse allocated resources, where possible.
-	var (
-		booruTags                      []boorufetch.Tag
-		img                            = db.PendingImage{TargetTag: requested}
-		hasChar, valid, inDB, contains bool
-	)
-	for i, p := range posts {
-		if common.IsTest && i >= 10 {
-			break // Shorten tests
-		}
-		img.MD5, err = p.MD5()
-		if err != nil {
-			return
-		}
+	// Push applicable posts to pending image set
+	dst := make(chan error, 8)
+	src := make(chan boorufetch.Post, len(posts))
 
-		// Check, if not already in DB
-		//
-		// TODO: Perform this in one query on array of bytea hashes
-		inDB, err = db.IsInDatabase(img.MD5)
-		if err != nil {
-			return
-		}
-		if inDB {
-			continue
-		}
-		inDB, err = db.IsPendingImage(img.MD5)
-		if err != nil {
-			return
-		}
-		if inDB {
-			continue
-		}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-		// File must be a still image
-		valid = false
-		img.URL = p.FileURL()
-		if img.URL != "" {
-			for _, s := range [...]string{"jpg", "jpeg", "png"} {
-				if strings.HasSuffix(img.URL, s) {
-					valid = true
-					break
-				}
-			}
-		}
-		if !valid {
-			err = db.BlacklistImage(img.MD5)
-			if err != nil {
-				return
-			}
-			continue
-		}
-
-		// Rating and tag fetches might need a network fetch, so do these later
-
-		img.Rating, err = p.Rating()
-		if err != nil {
-			return
-		}
-
-		hasChar = false
-		booruTags, err = p.Tags()
-		if err != nil {
-			return
-		}
-		for _, t := range booruTags {
-			// Allow only images with 1 character in them and ensure said
-			// character matches the requested tag in case of gelbooru-danbooru
-			// desync
-			if t.Type == boorufetch.Character {
-				if hasChar ||
-					// Ensure no case mismatch, as tags are queried as lowercase
-					// in the boorus
-					strings.ToLower(t.Tag) != strings.ToLower(requested) {
-					err = db.BlacklistImage(img.MD5)
-					if err != nil {
+	for _, p := range posts {
+		src <- p
+	}
+	for i := 0; i < 8; i++ {
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case p := <-src:
+					select {
+					case <-ctx.Done():
 						return
+					case dst <- processPost(requested, p):
 					}
-					goto skip
 				}
-				hasChar = true
-			}
-		}
 
-		contains = false
-		for _, t := range booruTags {
-			if t.Tag == requested {
-				contains = true
-				break
 			}
-		}
-		img.Tags = make([]string, 0, len(booruTags))
-		for _, t := range booruTags {
-			img.Tags = append(img.Tags, t.Tag)
-		}
-		if !contains {
-			// Ensure array contains initial tag
-			img.Tags = append(img.Tags, requested)
-		}
-
-		err = db.InsertPendingImage(img)
+		}()
+	}
+	for i := 0; i < len(posts); i++ {
+		err = <-dst
 		if err != nil {
 			return
 		}
-		if common.IsTest {
-			log.Printf("logged pending image: %s\n", img.URL)
-		}
-
-	skip:
 	}
 
 	// Set page as seen
 	store.pages[page] = struct{}{}
+
+	return
+}
+
+func processPost(requested string, p boorufetch.Post) (err error) {
+	img := db.PendingImage{TargetTag: requested}
+	img.MD5, err = p.MD5()
+	if err != nil {
+		return
+	}
+
+	// Check, if not already in DB
+	inDB, err := db.IsInDatabase(img.MD5)
+	if err != nil || inDB {
+		return
+	}
+	inDB, err = db.IsPendingImage(img.MD5)
+	if err != nil || inDB {
+		return
+	}
+
+	// File must be a still image
+	valid := false
+	img.URL = p.FileURL()
+	if img.URL != "" {
+		for _, s := range [...]string{"jpg", "jpeg", "png"} {
+			if strings.HasSuffix(img.URL, s) {
+				valid = true
+				break
+			}
+		}
+	}
+	if !valid {
+		err = db.BlacklistImage(img.MD5)
+		return
+	}
+
+	// Rating and tag fetches might need a network fetch, so do these later
+
+	img.Rating, err = p.Rating()
+	if err != nil {
+		return
+	}
+
+	hasChar := false
+	booruTags, err := p.Tags()
+	if err != nil {
+		return
+	}
+	for _, t := range booruTags {
+		// Allow only images with 1 character in them and ensure said
+		// character matches the requested tag in case of gelbooru-danbooru
+		// desync
+		if t.Type == boorufetch.Character {
+			if hasChar ||
+				// Ensure no case mismatch, as tags are queried as lowercase
+				// in the boorus
+				strings.ToLower(t.Tag) != strings.ToLower(requested) {
+				err = db.BlacklistImage(img.MD5)
+				return
+			}
+			hasChar = true
+		}
+	}
+
+	contains := false
+	for _, t := range booruTags {
+		if t.Tag == requested {
+			contains = true
+			break
+		}
+	}
+	img.Tags = make([]string, 0, len(booruTags))
+	for _, t := range booruTags {
+		img.Tags = append(img.Tags, t.Tag)
+	}
+	if !contains {
+		// Ensure array contains initial tag
+		img.Tags = append(img.Tags, requested)
+	}
+
+	err = db.InsertPendingImage(img)
+	if err != nil {
+		return
+	}
+	if common.IsTest {
+		log.Printf("\nlogged pending image: %s\n", img.URL)
+	}
 
 	return
 }
