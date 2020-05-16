@@ -241,6 +241,8 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 		}
 	}
 
+	// Ensure array contains initial tag, if not, the fresher tags from Danbooru
+	//  might not have the tag
 	contains := false
 	for _, t := range booruTags {
 		if t.Tag == requested {
@@ -253,8 +255,8 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 		img.Tags = append(img.Tags, t.Tag)
 	}
 	if !contains {
-		// Ensure array contains initial tag
-		img.Tags = append(img.Tags, requested)
+		err = db.BlacklistImage(img.MD5)
+		return
 	}
 
 	err = db.InsertPendingImage(img)
