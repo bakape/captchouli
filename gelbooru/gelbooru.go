@@ -33,13 +33,24 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	tags := "solo -photo -monochrome -multiple_girls -couple -multiple_boys " +
-		"-cosplay -objectification " +
-		req.Tag
-
-	err = tryFetchPage(req.Tag, tags)
-	if err != nil {
-		return
+	// Faster tag init
+	skipPageFetch := false
+	if req.IsInitial {
+		var n int
+		n, err = db.CountPending(req.Tag)
+		if err != nil {
+			return
+		}
+		skipPageFetch = n >= 3
+	}
+	if !skipPageFetch {
+		tags := "solo -photo -monochrome -multiple_girls -couple -multiple_boys " +
+			"-cosplay -objectification " +
+			req.Tag
+		err = tryFetchPage(req.Tag, tags)
+		if err != nil {
+			return
+		}
 	}
 
 	img, err := db.PopRandomPendingImage(req.Tag)

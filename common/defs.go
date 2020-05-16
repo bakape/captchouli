@@ -27,8 +27,10 @@ func (d DataSource) String() string {
 }
 
 type FetchRequest struct {
-	Source DataSource
-	Tag    string
+	// Initial tag population
+	IsInitial bool
+	Source    DataSource
+	Tag       string
 }
 
 // Generic error with prefix string

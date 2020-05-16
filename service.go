@@ -201,6 +201,7 @@ func (s *Service) initTag(tag string) (err error) {
 		f                 = s.filters(tag)
 		req               = f.FetchRequest
 	)
+	req.IsInitial = true
 	for {
 		count, err = db.ImageCount(f)
 		if err != nil {
@@ -223,7 +224,7 @@ func (s *Service) initTag(tag string) (err error) {
 
 		if !s.quiet {
 			fetchCount++
-			fmt.Fprintf(os.Stdout, "\rfetch attempt: %d\t", fetchCount)
+			fmt.Fprintf(os.Stdout, "\rimage fetch: %d\t", fetchCount)
 		}
 		err = fetch(req)
 		if err != nil {

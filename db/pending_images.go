@@ -86,3 +86,13 @@ func PopRandomPendingImage(tag string) (img PendingImage, err error) {
 	})
 	return
 }
+
+// Count pending images for tag
+func CountPending(tag string) (n int, err error) {
+	err = sq.Select("count(*)").
+		From("pending_images").
+		Where("target_tag = ?", tag).
+		QueryRow().
+		Scan(&n)
+	return
+}
