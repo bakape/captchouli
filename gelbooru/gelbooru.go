@@ -1,8 +1,10 @@
 package gelbooru
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,6 +21,16 @@ import (
 var (
 	cache = make(map[string]*cacheEntry)
 	mu    sync.Mutex
+
+	blacklisted = map[string]struct{}{
+		"photo":           {},
+		"monochrome":      {},
+		"multiple_girls":  {},
+		"couple":          {},
+		"multiple_boys":   {},
+		"cosplay":         {},
+		"objectification": {},
+	}
 )
 
 type cacheEntry struct {
@@ -44,10 +56,13 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 		skipPageFetch = n >= 3
 	}
 	if !skipPageFetch {
-		tags := "solo -photo -monochrome -multiple_girls -couple -multiple_boys " +
-			"-cosplay -objectification " +
-			req.Tag
-		err = tryFetchPage(req.Tag, tags)
+		var w bytes.Buffer
+		w.WriteString("solo")
+		fmt.Fprintf(&w, " %s", req.Tag)
+		for t := range blacklisted {
+			fmt.Fprintf(&w, " -%s", t)
+		}
+		err = tryFetchPage(req.Tag, w.String())
 		if err != nil {
 			return
 		}
@@ -197,6 +212,10 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 		return
 	}
 
+	blacklist := func() error {
+		return db.BlacklistImage(img.MD5)
+	}
+
 	// File must be a still image
 	valid := false
 	img.URL = p.FileURL()
@@ -209,8 +228,7 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 		}
 	}
 	if !valid {
-		err = db.BlacklistImage(img.MD5)
-		return
+		return blacklist()
 	}
 
 	// Rating and tag fetches might need a network fetch, so do these later
@@ -221,6 +239,8 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 	}
 
 	hasChar := false
+	hasSolo := false
+	containsRequested := false
 	booruTags, err := p.Tags()
 	if err != nil {
 		return
@@ -234,29 +254,34 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 				// Ensure no case mismatch, as tags are queried as lowercase
 				// in the boorus
 				strings.ToLower(t.Tag) != strings.ToLower(requested) {
-				err = db.BlacklistImage(img.MD5)
-				return
+				return blacklist()
 			}
 			hasChar = true
 		}
-	}
 
-	// Ensure array contains initial tag, if not, the fresher tags from Danbooru
-	//  might not have the tag
-	contains := false
-	for _, t := range booruTags {
+		// Ensure tags do not contain any of the blacklisted tags
+		if _, ok := blacklisted[t.Tag]; ok {
+			return blacklist()
+		}
+
+		// Ensure tags contain solo
+		if t.Tag == "solo" {
+			hasSolo = true
+		}
+
+		// Ensure array contains initial tag, if not, the fresher tags from
+		// Danbooru might not have the tag
 		if t.Tag == requested {
-			contains = true
-			break
+			containsRequested = true
 		}
 	}
+	if !containsRequested || !hasSolo {
+		return blacklist()
+	}
+
 	img.Tags = make([]string, 0, len(booruTags))
 	for _, t := range booruTags {
 		img.Tags = append(img.Tags, t.Tag)
-	}
-	if !contains {
-		err = db.BlacklistImage(img.MD5)
-		return
 	}
 
 	err = db.InsertPendingImage(img)
