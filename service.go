@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -48,7 +47,10 @@ func init() {
 // Source of image database to use for captcha image generation
 type DataSource = common.DataSource
 
-const Gelbooru = common.Gelbooru
+const (
+	Gelbooru = common.Gelbooru
+	Danbooru = common.Danbooru
+)
 
 const (
 	// minimum size of image pool for a tag
@@ -69,9 +71,6 @@ type Options struct {
 	// Silence non-error log outputs
 	Quiet bool
 
-	// Source of image database to use for captcha image generation
-	Source DataSource
-
 	// Allow images with varying explicitness. Defaults to only Safe.
 	Explicitness []Rating
 
@@ -87,7 +86,6 @@ type Options struct {
 // Encapsulates a configured captcha-generation and verification service
 type Service struct {
 	quiet           bool
-	source          DataSource
 	explicitnessStr string
 	explicitness    []Rating
 	tags            appendSlice
@@ -120,14 +118,13 @@ func NewService(opts Options) (s *Service, err error) {
 
 	s = &Service{
 		quiet:        opts.Quiet,
-		source:       opts.Source,
 		explicitness: opts.Explicitness,
 	}
 	if len(s.explicitness) == 0 {
 		s.explicitness = []Rating{Safe}
 	}
 
-	err = initClassifier(opts.Source)
+	err = initClassifier()
 	if err != nil {
 		return
 	}
@@ -224,7 +221,7 @@ func (s *Service) initTag(tag string) (err error) {
 
 		if !s.quiet {
 			fetchCount++
-			fmt.Fprintf(os.Stdout, "\rimage fetch: %d\t", fetchCount)
+			fmt.Printf("image fetch: %d\n", fetchCount)
 		}
 		err = fetch(req)
 		if err != nil {
@@ -233,16 +230,11 @@ func (s *Service) initTag(tag string) (err error) {
 	}
 }
 
-func (s *Service) request(tag string) common.FetchRequest {
-	return common.FetchRequest{
-		Tag:    tag,
-		Source: s.source,
-	}
-}
-
 func (s *Service) filters(tag string) db.Filters {
 	return db.Filters{
-		FetchRequest: s.request(tag),
+		FetchRequest: common.FetchRequest{
+			Tag: tag,
+		},
 		Explicitness: s.explicitness,
 	}
 }
@@ -270,7 +262,9 @@ func (s *Service) NewCaptcha(w io.Writer, colour, background string,
 	}
 
 	id, images, err := db.GenerateCaptcha(db.Filters{
-		FetchRequest: s.request(tag),
+		FetchRequest: common.FetchRequest{
+			Tag: tag,
+		},
 		Explicitness: s.explicitness,
 	})
 	if err != nil {

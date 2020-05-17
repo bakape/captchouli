@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/danbooru"
 	"github.com/bakape/captchouli/db"
-	"github.com/bakape/captchouli/gelbooru"
 )
 
 var (
@@ -35,8 +35,7 @@ func init() {
 					if i == target {
 						err := fetch(req)
 						if err != nil {
-							log.Printf("fetch error: from %s on tag `%s`\n",
-								req.Source, req.Tag)
+							log.Printf("fetch error on tag `%s`\n", req.Tag)
 						}
 						delete(requests, req)
 						break
@@ -49,19 +48,14 @@ func init() {
 }
 
 func fetch(req common.FetchRequest) (err error) {
-	var fn func(common.FetchRequest) (*os.File, db.Image, error)
-	switch req.Source {
-	case common.Gelbooru:
-		fn = gelbooru.Fetch
-	}
-	f, img, err := fn(req)
+	f, img, err := danbooru.Fetch(req)
 	if f == nil || err != nil {
 		return
 	}
 	defer os.Remove(f.Name())
 	defer f.Close()
 
-	thumb, err := thumbnail(f.Name(), req.Source)
+	thumb, err := thumbnail(f.Name())
 	switch err {
 	case nil:
 	case ErrNoFace:

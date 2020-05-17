@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bakape/captchouli/common"
 	"github.com/bakape/captchouli/test_utils"
 )
 
@@ -27,7 +26,7 @@ func TestThumbnailing(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			thumb, err := thumbnail(p, common.Gelbooru)
+			thumb, err := thumbnail(p)
 			if err != nil {
 				t.Fatal(err)
 			}

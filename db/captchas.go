@@ -3,10 +3,11 @@ package db
 import (
 	crypto "crypto/rand"
 	"database/sql"
+	"math/rand"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/bakape/boorufetch"
 	"github.com/bakape/captchouli/common"
-	"math/rand"
 )
 
 // Filters for querying an image for a captcha
@@ -70,7 +71,7 @@ func getMatchingImages(f Filters, images *[9][16]byte, buf *[]byte,
 		Join("images on images.id = image_id").
 		Where(squirrel.Eq{
 			"tag":       f.Tag,
-			"source":    f.Source,
+			"source":    common.Danbooru,
 			"blacklist": false,
 			"rating":    f.Explicitness,
 		}).

@@ -84,7 +84,7 @@ func ImageCount(f Filters) (n int, err error) {
 		Join("images on image_id = images.id").
 		Where(squirrel.Eq{
 			"tag":       f.Tag,
-			"source":    f.Source,
+			"source":    common.Danbooru,
 			"blacklist": false,
 			"rating":    f.Explicitness,
 		}).

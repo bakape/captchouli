@@ -36,12 +36,10 @@ func Open() error {
 
 // Close open resources
 func Close() error {
-	classifiersMu.Lock()
-	for s, c := range classifiers {
-		C.cpli_unload_classifier(c)
-		delete(classifiers, s)
-	}
-	classifiersMu.Unlock()
+	classifierMu.Lock()
+	C.cpli_unload_classifier(classifier)
+	classifier = nil
+	classifierMu.Unlock()
 
 	return db.Close()
 }

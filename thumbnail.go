@@ -10,38 +10,29 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"sync"
 	"unsafe"
-
-	"github.com/bakape/captchouli/common"
 )
 
 var (
-	classifiers   = make(map[common.DataSource]unsafe.Pointer)
-	classifiersMu sync.Mutex
+	classifier   unsafe.Pointer
+	classifierMu sync.Mutex
 )
 
-func initClassifier(src common.DataSource) (err error) {
-	classifiersMu.Lock()
-	defer classifiersMu.Unlock()
+func initClassifier() (err error) {
+	classifierMu.Lock()
+	defer classifierMu.Unlock()
 
-	c, ok := classifiers[src]
-	if ok {
+	if classifier != nil {
 		return
 	}
 
 	// XXX: Not having the cascade file embedded into the binary would prevent
 	// go-getablity but the OpenCV CascadeClassifier requires a file path.
-	var zipped []byte
-	switch src {
-	case Gelbooru:
-		zipped = cascade_animeface
-	}
-	r, err := gzip.NewReader(bytes.NewReader(zipped))
+	r, err := gzip.NewReader(bytes.NewReader(cascade_animeface))
 	if err != nil {
 		return
 	}
@@ -61,20 +52,19 @@ func initClassifier(src common.DataSource) (err error) {
 
 	name := C.CString(tmp.Name())
 	defer C.free(unsafe.Pointer(name))
-	c = C.cpli_load_classifier(name)
+	c := C.cpli_load_classifier(name)
 	if c == nil {
-		return Error{fmt.Errorf("unable to load classifier: %s", src)}
+		return Error{errors.New("unable to load classifier")}
 	}
-	classifiers[src] = c
+	classifier = c
 	return
 }
 
 // Generate a thumbnail of passed image.
 // NOTE: the generated thumbnail is not deterministic.
-func thumbnail(path string, src common.DataSource) (thumb []byte, err error) {
-	classifiersMu.Lock()
-	defer classifiersMu.Unlock()
-	classifier := classifiers[src]
+func thumbnail(path string) (thumb []byte, err error) {
+	classifierMu.Lock()
+	defer classifierMu.Unlock()
 
 	var out C.Buffer
 	pathC := C.CString(path)

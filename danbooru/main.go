@@ -1,4 +1,4 @@
-package gelbooru
+package danbooru
 
 import (
 	"bytes"
@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -38,7 +38,7 @@ type cacheEntry struct {
 	maxPages int // Estimate for maximum number of pages
 }
 
-// Fetch random matching file from Gelbooru.
+// Fetch random matching file from Danbooru.
 // f can be nil, if no file is matched, even when err = nil.
 // Caller must close and remove temporary file after use.
 func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
@@ -62,7 +62,7 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 		for t := range blacklisted {
 			fmt.Fprintf(&w, " -%s", t)
 		}
-		err = tryFetchPage(req.Tag, w.String())
+		err = tryFetchPage(req.Tag, strings.ToLower(req.Tag), req.Tag+" solo")
 		if err != nil {
 			return
 		}
@@ -78,7 +78,7 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 
 	image = db.Image{
 		Rating: img.Rating,
-		Source: req.Source,
+		Source: common.Danbooru,
 		MD5:    img.MD5,
 		Tags:   img.Tags,
 	}
@@ -103,8 +103,8 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	return
 }
 
-// Attempt to fetch a random page from gelbooru
-func tryFetchPage(requested, tags string) (err error) {
+// Attempt to fetch a random page from Danbooru
+func tryFetchPage(requested, requestedLower, tags string) (err error) {
 	store := cache[tags]
 	if store == nil {
 		maxPages := 200
@@ -139,7 +139,7 @@ func tryFetchPage(requested, tags string) (err error) {
 		return
 	}
 
-	posts, err := boorufetch.FromGelbooru(tags, uint(page), 100)
+	posts, err := boorufetch.FromDanbooru(tags, uint(page), 100)
 	if err != nil {
 		return
 	}
@@ -152,7 +152,7 @@ func tryFetchPage(requested, tags string) (err error) {
 		// Empty page. Don't check pages past this one. They will also be empty.
 		store.maxPages = page
 		// Retry with a new random page
-		return tryFetchPage(requested, tags)
+		return tryFetchPage(requested, requestedLower, tags)
 	}
 
 	// Push applicable posts to pending image set
@@ -165,7 +165,8 @@ func tryFetchPage(requested, tags string) (err error) {
 	for _, p := range posts {
 		src <- p
 	}
-	for i := 0; i < 8; i++ {
+	cpus := runtime.NumCPU()
+	for i := 0; i < cpus; i++ {
 		go func() {
 			for {
 				select {
@@ -175,7 +176,7 @@ func tryFetchPage(requested, tags string) (err error) {
 					select {
 					case <-ctx.Done():
 						return
-					case dst <- processPost(requested, p):
+					case dst <- processPost(requested, requestedLower, p):
 					}
 				}
 
@@ -195,11 +196,13 @@ func tryFetchPage(requested, tags string) (err error) {
 	return
 }
 
-func processPost(requested string, p boorufetch.Post) (err error) {
+func processPost(requested, requestedLower string, p boorufetch.Post,
+) (err error) {
 	img := db.PendingImage{TargetTag: requested}
 	img.MD5, err = p.MD5()
 	if err != nil {
-		return
+		// There are sometimes posts with no MD5 hash - ignore them
+		return nil
 	}
 
 	// Check, if not already in DB
@@ -232,8 +235,11 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 	}
 
 	// Rating and tag fetches might need a network fetch, so do these later
-
 	img.Rating, err = p.Rating()
+	if err != nil {
+		return
+	}
+	booruTags, err := p.Tags()
 	if err != nil {
 		return
 	}
@@ -241,19 +247,10 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 	hasChar := false
 	hasSolo := false
 	containsRequested := false
-	booruTags, err := p.Tags()
-	if err != nil {
-		return
-	}
 	for _, t := range booruTags {
-		// Allow only images with 1 character in them and ensure said
-		// character matches the requested tag in case of gelbooru-danbooru
-		// desync
+		// Allow only images with 1 character in them
 		if t.Type == boorufetch.Character {
-			if hasChar ||
-				// Ensure no case mismatch, as tags are queried as lowercase
-				// in the boorus
-				strings.ToLower(t.Tag) != strings.ToLower(requested) {
+			if hasChar {
 				return blacklist()
 			}
 			hasChar = true
@@ -269,9 +266,8 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 			hasSolo = true
 		}
 
-		// Ensure array contains initial tag, if not, the fresher tags from
-		// Danbooru might not have the tag
-		if t.Tag == requested {
+		// Ensure array contains initial tag
+		if strings.ToLower(t.Tag) == requestedLower {
 			containsRequested = true
 		}
 	}
@@ -284,13 +280,5 @@ func processPost(requested string, p boorufetch.Post) (err error) {
 		img.Tags = append(img.Tags, t.Tag)
 	}
 
-	err = db.InsertPendingImage(img)
-	if err != nil {
-		return
-	}
-	if common.IsTest {
-		log.Printf("\nlogged pending image: %s\n", img.URL)
-	}
-
-	return
+	return db.InsertPendingImage(img)
 }

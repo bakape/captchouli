@@ -9,6 +9,7 @@ type DataSource uint8
 
 const (
 	Gelbooru DataSource = iota
+	Danbooru
 )
 
 const (
@@ -23,13 +24,19 @@ var (
 )
 
 func (d DataSource) String() string {
-	return "gelbooru"
+	switch d {
+	case Gelbooru:
+		return "gelbooru"
+	case Danbooru:
+		return "danBooru"
+	default:
+		return "unknown_source"
+	}
 }
 
 type FetchRequest struct {
 	// Initial tag population
 	IsInitial bool
-	Source    DataSource
 	Tag       string
 }
 

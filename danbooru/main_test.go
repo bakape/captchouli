@@ -1,4 +1,4 @@
-package gelbooru
+package danbooru
 
 import (
 	"bytes"
@@ -32,8 +32,7 @@ func testFetches(t *testing.T, tag string) {
 	w.SetHeader([]string{"rating", "MD5", "tags"})
 
 	f, img, err := Fetch(common.FetchRequest{
-		Tag:    tag,
-		Source: common.Gelbooru,
+		Tag: tag,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -58,8 +57,7 @@ func testFetches(t *testing.T, tag string) {
 
 func TestNoMatch(t *testing.T) {
 	_, _, err := Fetch(common.FetchRequest{
-		Tag:    "sakura_kyouko_dsadsdadsadsad",
-		Source: common.Gelbooru,
+		Tag: "sakura_kyouko_dsadsdadsadsad",
 	})
 	if err != common.ErrNoMatch {
 		t.Fatal(err)
@@ -67,5 +65,5 @@ func TestNoMatch(t *testing.T) {
 }
 
 func TestOnlyOnePage(t *testing.T) {
-	testFetches(t, "symphogear")
+	testFetches(t, "symphogear_live")
 }
