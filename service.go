@@ -142,11 +142,13 @@ func NewService(opts Options) (s *Service, err error) {
 // Initialize pool with enough images, if lacking
 func (s *Service) initPool(tags []string) (err error) {
 	formatErr := func(tag string, err error) error {
-		return fmt.Errorf(
-			"captchouli: error initializing image pool for tag `%s`: %w",
-			tag,
-			err,
-		)
+		return Error{
+			Err: fmt.Errorf(
+				"error initializing image pool for tag `%s`: %w",
+				tag,
+				err,
+			),
+		}
 	}
 
 	// Init first 3 tags needed for operation first and init the rest
@@ -221,7 +223,7 @@ func (s *Service) initTag(tag string) (err error) {
 
 		if !s.quiet {
 			fetchCount++
-			fmt.Printf("image fetch: %d\n", fetchCount)
+			fmt.Printf("captchouli: image fetch: %d\n", fetchCount)
 		}
 		err = fetch(req)
 		if err != nil {

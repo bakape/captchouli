@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 )
 
 // Execute all SQL statement strings and return on first error, if any
@@ -43,4 +44,10 @@ func imageExists(table string, md5 [16]byte) (exists bool, err error) {
 		err = nil
 	}
 	return
+}
+
+func lowercaseTags(tags []string) {
+	for i := range tags {
+		tags[i] = strings.ToLower(tags[i])
+	}
 }

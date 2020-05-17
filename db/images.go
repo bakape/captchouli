@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/bakape/boorufetch"
@@ -26,6 +27,8 @@ func InsertImage(img Image) (err error) {
 	if len(img.Tags) == 0 {
 		return BlacklistImage(img.MD5)
 	}
+
+	lowercaseTags(img.Tags)
 
 	dbMu.Lock()
 	defer dbMu.Unlock()
@@ -76,6 +79,8 @@ func BlacklistImage(hash [16]byte) (err error) {
 
 // Return count of images matching selectors
 func ImageCount(f Filters) (n int, err error) {
+	f.Tag = strings.ToLower(f.Tag)
+
 	dbMu.RLock()
 	defer dbMu.RUnlock()
 
@@ -84,7 +89,6 @@ func ImageCount(f Filters) (n int, err error) {
 		Join("images on image_id = images.id").
 		Where(squirrel.Eq{
 			"tag":       f.Tag,
-			"source":    common.Danbooru,
 			"blacklist": false,
 			"rating":    f.Explicitness,
 		}).

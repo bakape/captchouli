@@ -4,6 +4,7 @@ import (
 	crypto "crypto/rand"
 	"database/sql"
 	"math/rand"
+	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/bakape/boorufetch"
@@ -18,6 +19,8 @@ type Filters struct {
 
 // Generate a new captcha and return its ID and image list in order
 func GenerateCaptcha(f Filters) (id [64]byte, images [9][16]byte, err error) {
+	f.Tag = strings.ToLower(f.Tag)
+
 	buf := make([]byte, 16)
 	matchedCount, err := getMatchingImages(f, &images, &buf)
 	if err != nil {

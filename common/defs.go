@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	ErrNoMatch = Error{errors.New("no images match tag")}
+	ErrNoMatch = Error{errors.New("not enough images match tag")}
 )
 
 func (d DataSource) String() string {
@@ -35,7 +35,6 @@ func (d DataSource) String() string {
 }
 
 type FetchRequest struct {
-	// Initial tag population
 	IsInitial bool
 	Tag       string
 }

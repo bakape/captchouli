@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"strings"
 
 	"github.com/bakape/boorufetch"
 	"github.com/bakape/captchouli/v2/common"
@@ -23,6 +24,7 @@ func IsPendingImage(md5 [16]byte) (bool, error) {
 
 // Insert a new image pending processing
 func InsertPendingImage(img PendingImage) (err error) {
+	lowercaseTags(img.Tags)
 	tags, err := json.Marshal(img.Tags)
 	if err != nil {
 		return
@@ -40,6 +42,8 @@ func InsertPendingImage(img PendingImage) (err error) {
 
 // Deletes random pending pending image for tag and returns it, if any
 func PopRandomPendingImage(tag string) (img PendingImage, err error) {
+	tag = strings.ToLower(tag)
+
 	dbMu.Lock()
 	defer dbMu.Unlock()
 
@@ -89,6 +93,11 @@ func PopRandomPendingImage(tag string) (img PendingImage, err error) {
 
 // Count pending images for tag
 func CountPending(tag string) (n int, err error) {
+	tag = strings.ToLower(tag)
+
+	dbMu.RLock()
+	defer dbMu.RUnlock()
+
 	err = sq.Select("count(*)").
 		From("pending_images").
 		Where("target_tag = ?", tag).

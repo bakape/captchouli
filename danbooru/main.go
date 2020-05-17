@@ -1,10 +1,9 @@
 package danbooru
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -31,6 +30,8 @@ var (
 		"cosplay":         {},
 		"objectification": {},
 	}
+
+	errAllFetched = errors.New("all pages fetched")
 )
 
 type cacheEntry struct {
@@ -47,6 +48,7 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 
 	// Faster tag init
 	skipPageFetch := false
+	allFetched := false
 	if req.IsInitial {
 		var n int
 		n, err = db.CountPending(req.Tag)
@@ -56,14 +58,13 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 		skipPageFetch = n >= 3
 	}
 	if !skipPageFetch {
-		var w bytes.Buffer
-		w.WriteString("solo")
-		fmt.Fprintf(&w, " %s", req.Tag)
-		for t := range blacklisted {
-			fmt.Fprintf(&w, " -%s", t)
-		}
-		err = tryFetchPage(req.Tag, strings.ToLower(req.Tag), req.Tag+" solo")
-		if err != nil {
+		err = tryFetchPage(req.Tag, req.Tag+" solo")
+		switch err {
+		case nil:
+		case errAllFetched:
+			err = nil
+			allFetched = true
+		default:
 			return
 		}
 	}
@@ -71,6 +72,10 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	img, err := db.PopRandomPendingImage(req.Tag)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			if allFetched {
+				err = common.ErrNoMatch
+				return
+			}
 			err = nil
 		}
 		return
@@ -104,10 +109,10 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 }
 
 // Attempt to fetch a random page from Danbooru
-func tryFetchPage(requested, requestedLower, tags string) (err error) {
+func tryFetchPage(requested, tags string) (err error) {
 	store := cache[tags]
 	if store == nil {
-		maxPages := 200
+		maxPages := 300
 		if common.IsTest { // Reduce test duration
 			maxPages = 10
 		}
@@ -122,8 +127,7 @@ func tryFetchPage(requested, requestedLower, tags string) (err error) {
 		return
 	}
 	if len(store.pages) == store.maxPages {
-		// Already fetched all pages
-		return
+		return errAllFetched
 	}
 
 	// Always dowload first page on fresh fetch
@@ -152,7 +156,7 @@ func tryFetchPage(requested, requestedLower, tags string) (err error) {
 		// Empty page. Don't check pages past this one. They will also be empty.
 		store.maxPages = page
 		// Retry with a new random page
-		return tryFetchPage(requested, requestedLower, tags)
+		return tryFetchPage(requested, tags)
 	}
 
 	// Push applicable posts to pending image set
@@ -176,7 +180,7 @@ func tryFetchPage(requested, requestedLower, tags string) (err error) {
 					select {
 					case <-ctx.Done():
 						return
-					case dst <- processPost(requested, requestedLower, p):
+					case dst <- processPost(requested, p):
 					}
 				}
 
@@ -196,7 +200,7 @@ func tryFetchPage(requested, requestedLower, tags string) (err error) {
 	return
 }
 
-func processPost(requested, requestedLower string, p boorufetch.Post,
+func processPost(requested string, p boorufetch.Post,
 ) (err error) {
 	img := db.PendingImage{TargetTag: requested}
 	img.MD5, err = p.MD5()
@@ -262,13 +266,13 @@ func processPost(requested, requestedLower string, p boorufetch.Post,
 		}
 
 		// Ensure tags contain solo
-		if t.Tag == "solo" {
-			hasSolo = true
+		if !hasSolo {
+			hasSolo = t.Tag == "solo"
 		}
 
 		// Ensure array contains initial tag
-		if strings.ToLower(t.Tag) == requestedLower {
-			containsRequested = true
+		if !containsRequested {
+			containsRequested = strings.ToLower(t.Tag) == requested
 		}
 	}
 	if !containsRequested || !hasSolo {

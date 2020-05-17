@@ -3,6 +3,7 @@ package captchouli
 import (
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bakape/captchouli/v2/common"
@@ -48,6 +49,8 @@ func init() {
 }
 
 func fetch(req common.FetchRequest) (err error) {
+	req.Tag = strings.ToLower(req.Tag)
+
 	f, img, err := danbooru.Fetch(req)
 	if f == nil || err != nil {
 		return
