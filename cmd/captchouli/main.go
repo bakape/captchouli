@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bakape/captchouli"
+	"github.com/bakape/captchouli/v2"
 )
 
 var defaultTags = [...]string{

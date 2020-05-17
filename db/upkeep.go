@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/v2/common"
 )
 
 // Time it takes for one captcha to expire

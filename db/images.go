@@ -5,7 +5,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/bakape/boorufetch"
-	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/v2/common"
 )
 
 type Image struct {

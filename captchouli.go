@@ -9,8 +9,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/bakape/captchouli/common"
-	"github.com/bakape/captchouli/db"
+	"github.com/bakape/captchouli/v2/common"
+	"github.com/bakape/captchouli/v2/db"
 	"golang.org/x/net/html"
 )
 

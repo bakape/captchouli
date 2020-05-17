@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bakape/captchouli/db"
+	"github.com/bakape/captchouli/v2/db"
 )
 
 func TestMain(t *testing.M) {

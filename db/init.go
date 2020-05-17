@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/v2/common"
 	_ "github.com/mattn/go-sqlite3"
 )
 

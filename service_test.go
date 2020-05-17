@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/v2/common"
 )
 
 func TestCaptcha(t *testing.T) {

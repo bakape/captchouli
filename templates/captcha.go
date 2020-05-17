@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/v2/common"
 	"github.com/valyala/quicktemplate"
 )
 

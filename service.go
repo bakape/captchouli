@@ -14,9 +14,9 @@ import (
 	"sync"
 
 	"github.com/bakape/boorufetch"
-	"github.com/bakape/captchouli/common"
-	"github.com/bakape/captchouli/db"
-	"github.com/bakape/captchouli/templates"
+	"github.com/bakape/captchouli/v2/common"
+	"github.com/bakape/captchouli/v2/db"
+	"github.com/bakape/captchouli/v2/templates"
 	"github.com/julienschmidt/httprouter"
 )
 

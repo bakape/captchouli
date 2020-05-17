@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bakape/captchouli/test_utils"
+	"github.com/bakape/captchouli/v2/test_utils"
 )
 
 func TestThumbnailing(t *testing.T) {

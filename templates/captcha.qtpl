@@ -1,4 +1,4 @@
-{% import "github.com/bakape/captchouli/common" %}
+{% import "github.com/bakape/captchouli/v2/common" %}
 
 {% func Captcha(colour, background, tag string, id [64]byte, images [9][16]byte) %}{% stripspace %}
 	<style>

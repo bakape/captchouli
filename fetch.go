@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/bakape/captchouli/common"
-	"github.com/bakape/captchouli/danbooru"
-	"github.com/bakape/captchouli/db"
+	"github.com/bakape/captchouli/v2/common"
+	"github.com/bakape/captchouli/v2/danbooru"
+	"github.com/bakape/captchouli/v2/db"
 )
 
 var (

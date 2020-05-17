@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/bakape/boorufetch"
-	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/v2/common"
 )
 
 // Image data fetched from boorus pending processing by random selection

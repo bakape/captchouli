@@ -1,4 +1,4 @@
-module github.com/bakape/captchouli
+module github.com/bakape/captchouli/v2
 
 require (
 	github.com/Masterminds/squirrel v1.4.0

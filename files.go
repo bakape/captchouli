@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"os"
 
-	"github.com/bakape/captchouli/common"
+	"github.com/bakape/captchouli/v2/common"
 )
 
 func writeThumbnail(thumb []byte, md5 [16]byte) (err error) {
