@@ -21,7 +21,7 @@
 			width: 462px;
 		}
 		.captchouli-form {
-			height: 525px
+			height: auto;
 		}
 		.captchouli-margin {
 			margin: 4px 0;
