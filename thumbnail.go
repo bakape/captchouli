@@ -1,6 +1,6 @@
 package captchouli
 
-// #cgo pkg-config: opencv
+// #cgo pkg-config: opencv4
 // #cgo CFLAGS: -std=c11
 // #cgo CXXFLAGS: -std=c++17
 // #include "thumbnail.h"
