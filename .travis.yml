@@ -1,5 +1,7 @@
 dist: focal
 language: go
+go:
+  - "1.15"
 before_install:
   - sudo apt-get install -y libopencv-dev
 script: GO111MODULE=on go test -v --race -p 1 ./...
