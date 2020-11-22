@@ -200,7 +200,6 @@ func (s *Service) initTag(tag string) (err error) {
 		f                 = s.filters(tag)
 		req               = f.FetchRequest
 	)
-	req.IsInitial = true
 	for {
 		count, err = db.ImageCount(f)
 		if err != nil {

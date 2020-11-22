@@ -46,18 +46,12 @@ func Fetch(req common.FetchRequest) (f *os.File, image db.Image, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Faster tag init
-	skipPageFetch := false
-	allFetched := false
-	if req.IsInitial {
-		var n int
-		n, err = db.CountPending(req.Tag)
-		if err != nil {
-			return
-		}
-		skipPageFetch = n >= 3
+	pending, err := db.CountPending(req.Tag)
+	if err != nil {
+		return
 	}
-	if !skipPageFetch {
+	allFetched := false
+	if pending < 3 {
 		err = tryFetchPage(req.Tag, req.Tag+" solo")
 		switch err {
 		case nil:
