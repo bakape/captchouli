@@ -12,7 +12,7 @@ Captchouli scrapes boorus for admin-defined tags and generates and verifies capt
 
 1. Install OpenCV >= 4.0 development library (`libopencv-dev` on Debian-based systems)
 2. Install Go >= 1.10
-3. Run `go get github.com/bakape/captchouli/cmd/captchouli`
+3. Run `go install github.com/bakape/captchouli/cmd/captchouli@latest`
 4. The captchouli server binary will be located under `$HOME/go/bin/captchouli`, if the default `$GOPATH` is used.
 
 ## Usage
